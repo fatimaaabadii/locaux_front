@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+
 import { Plus, Edit, Trash2, Search } from "lucide-react";
 import {
   FaEye,
@@ -26,6 +27,7 @@ import {
 } from "/src/api";
 
 
+ 
 const Modal = ({ isOpen, onClose, children }) => {
   if (!isOpen) return null;
 
@@ -157,11 +159,41 @@ const PrestationManagementPage = () => {
   const [editFormData, setEditFormData] = useState(null);
 
   const queryClient = useQueryClient();
-
-  const { data: userData } = useQuery({
+const { data: userData } = useQuery({
     queryKey: ["user"],
     queryFn: getCurrentUser,
   });
+
+  
+const { data: personnes = [] } = useQuery({
+  queryKey: ["personnesProvince", userData?.province?.symbols],
+  queryFn: async () => {
+    // Récupérer l'id de la province à partir du symbol
+    const provincesRes = await api.get("http://172.16.20.90/api/internal/v1/provinces", {
+      headers: {
+        "Content-Type": "application/json",
+        "X-Internal-Secret":
+          "cEhFIsMu6vvLpZ1KOeFhOLh0rhf42xgdsSfsdDHkRMJyaxaOVu7tTuX2C05OFbtozGV1uMthtkbvMyxGrAEPwK5qDFKy6eHBX29CRcjiDitHlDmjITGVlJZ7g4lZi7mg",
+      },
+    });
+    const province = provincesRes.data.find((p) => p.symbols === userData?.province?.symbols);
+    if (!province) return [];
+    const res = await api.get(
+      `http://172.16.20.90/api/internal/v1/personnes/province/${province.id}`,
+      {
+        headers: {
+          "Content-Type": "application/json",
+          "X-Internal-Secret":
+            "cEhFIsMu6vvLpZ1KOeFhOLh0rhf42xgdsSfsdDHkRMJyaxaOVu7tTuX2C05OFbtozGV1uMthtkbvMyxGrAEPwK5qDFKy6eHBX29CRcjiDitHlDmjITGVlJZ7g4lZi7mg",
+        },
+      }
+    );
+    return res.data;
+  },
+  enabled: !!userData?.province?.symbols,
+});
+
+ 
 
   const { data: locaux = [], isLoading } = useQuery({
     queryKey: ["locaux"],
@@ -185,7 +217,7 @@ console.log(locaux);
         type_local: selectedCentre.type_local?.trim().toLowerCase() || "",
         adresse: selectedCentre.adresse || "",
         milieu: selectedCentre.milieu || "",
-        provinceNom: selectedCentre.province?.delegation || "",
+        province: selectedCentre.province?.delegation || "",
         telephone: selectedCentre.telephone || "",
         fax: selectedCentre.fax || "",
         gestion: selectedCentre.gestion || "",
@@ -414,7 +446,7 @@ console.log(locaux);
                     { label: "Type de local", value: selectedCentre.type_local },
                     { label: "Adresse", value: selectedCentre.adresse },
                     { label: "Milieu", value: selectedCentre.milieu },
-                    { label: "Province", value: selectedCentre.province?.delegation  },
+                    { label: "Province", value: selectedCentre.province?.province  },
                     { label: "Téléphone", value: selectedCentre.telephone },
                     { label: "Fax", value: selectedCentre.fax },
                     { label: "Gestion", value: selectedCentre.gestion },
@@ -514,22 +546,49 @@ console.log(locaux);
              
 
               {/* Section Personnel */}
-              <ModalSection icon={FaUsers} title="Personnel" bgColor="bg-orange-50">
-                <div className="bg-white p-3 rounded-md shadow-sm border border-gray-200">
-                  {selectedCentre.personnelIds?.length > 0 ? (
-                    <>
-                      <p className="text-sm text-gray-600 mb-2">
-                        IDs du personnel assigné: {selectedCentre.personnelIds.join(", ")}
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        Total: {selectedCentre.personnelIds.length} personne(s)
-                      </p>
-                    </>
-                  ) : (
-                    <p className="text-sm text-gray-500 italic">Aucun personnel assigné</p>
-                  )}
-                </div>
-              </ModalSection>
+             <ModalSection icon={FaUsers} title="Personnel" bgColor="bg-orange-50">
+  <div className="bg-white p-3 rounded-md shadow-sm border border-gray-200">
+
+
+
+{selectedCentre.responsable_nom ? (
+      <div className="mb-2">
+        <p className="text-sm font-medium text-gray-700">
+          Responsable du centre :{" "}
+          <span className="font-semibold text-gray-900">
+            {selectedCentre.responsable_nom}
+          </span>
+        </p>
+      </div>
+    ) : (
+      <p className="text-sm text-gray-500 italic mb-2">
+        Aucun responsable assigné
+      </p>
+    )}
+
+
+
+    {selectedCentre.personnelIds?.length > 0 ? (
+      <>
+        <p className="text-sm text-gray-600 mb-2">
+          Personnel assigné:{" "}
+          {selectedCentre.personnelIds
+            .map((id) => {
+              const person = personnes.find((p) => p.id === id);
+              return person ? person.nom_prenom_fr : `ID ${id}`;
+            })
+            .join(", ")}
+        </p>
+        <p className="text-xs text-gray-500">
+          Total: {selectedCentre.personnelIds.length} personne(s)
+        </p>
+      </>
+    ) : (
+      <p className="text-sm text-gray-500 italic">Aucun personnel assigné</p>
+    )}
+  </div>
+</ModalSection>
+
 
               {/* Section Observations */}
               {selectedCentre.observation && (

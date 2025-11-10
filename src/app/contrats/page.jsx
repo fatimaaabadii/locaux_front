@@ -185,16 +185,70 @@ const AddCentrePage = () => {
     queryFn: getCurrentUser,
   });
 
+
+
+
+const provinceSymbol = userData?.province?.symbols;
+  const [selectedPersonnes, setSelectedPersonnes] = useState([]);
+
+  // Étape 1 : Récupérer toutes les provinces
+  const { data: provinces, isLoading: loadingProvinces } = useQuery({
+    queryKey: ["provinces"],
+    queryFn: async () => {
+      const res = await api.get("http://172.16.20.90/api/internal/v1/provinces", {
+        headers: {
+          "Content-Type": "application/json",
+          "X-Internal-Secret":
+            "cEhFIsMu6vvLpZ1KOeFhOLh0rhf42xgdsSfsdDHkRMJyaxaOVu7tTuX2C05OFbtozGV1uMthtkbvMyxGrAEPwK5qDFKy6eHBX29CRcjiDitHlDmjITGVlJZ7g4lZi7mg",
+        },
+      });
+      return res.data;
+    },
+  });
+
+  // Étape 2 : Trouver la province du user
+  const provinceData = provinces?.find((p) => p.symbols === provinceSymbol);
+  const provinceId = provinceData?.id;
+
+  // Étape 3 : Charger les personnes de cette province
+  const { data: personnes, isLoading: loadingPersonnes } = useQuery({
+    queryKey: ["personnesProvince", provinceId],
+    queryFn: async () => {
+      const res = await api.get(
+        `http://172.16.20.90/api/internal/v1/personnes/province/${provinceId}`,
+        {
+          headers: {
+            "Content-Type": "application/json",
+            "X-Internal-Secret":
+              "cEhFIsMu6vvLpZ1KOeFhOLh0rhf42xgdsSfsdDHkRMJyaxaOVu7tTuX2C05OFbtozGV1uMthtkbvMyxGrAEPwK5qDFKy6eHBX29CRcjiDitHlDmjITGVlJZ7g4lZi7mg",
+          },
+        }
+      );
+      return res.data;
+    },
+    enabled: !!provinceId,
+  });
+console.log(personnes);
+  // Étape 4 : Gérer la sélection multiple
+
+
+
+
+
+
+
+
+  
   const { data: prestations = [], isLoading, error } = useQuery({
       queryKey: ["prestations"],
       queryFn: getPrestations(),
     });
-  console.log(prestations)
+ // console.log(prestations)
     const { data: programmes = [] } = useQuery({
       queryKey: ["programmes"],
       queryFn: getProgrammes(),
     });
-  console.log(userData);
+  //console.log(userData);
 
   // État initial du formulaire
   const [formData, setFormData] = useState({
@@ -258,6 +312,33 @@ const prestationOptions = useMemo(() => {
     }));
   };
 
+
+
+  const personnelOptions = useMemo(() => {
+     if (!personnes || !Array.isArray(personnes)) return [];
+  return personnes.map((p) => ({
+    value: p.id,
+    label: p.nom_prenom_fr,
+  }));
+}, [personnes]);
+
+// Gérer la sélection multi
+const handlePersonnelChange = (selectedOptions) => {
+  setPersonnelIds(selectedOptions ? selectedOptions.map((opt) => opt.value) : []);
+};
+
+const handleResponsableChange = (selectedOption) => {
+  if (selectedOption) {
+    setResponsableId(selectedOption.value);
+    setResponsableNom(selectedOption.label);
+  } else {
+    setResponsableId(null);
+    setResponsableNom(null);
+  }
+};
+
+
+
   // États pour les fichiers
   const [certificatFile, setCertificatFile] = useState(null);
   const [mappeFile, setMappeFile] = useState(null);
@@ -266,6 +347,8 @@ const prestationOptions = useMemo(() => {
   const [composantInput, setComposantInput] = useState([]);
   const [etagesInput, setEtagesInput] = useState([]);
   const [personnelIds, setPersonnelIds] = useState([]);
+   const [responsableId, setResponsableId] = useState(null);
+   const [responsableNom, setResponsableNom] = useState(null);
   const programmeOptions = programmes.map((p) => ({
     value: p.programmeId,
     label: p.nomProgramme,
@@ -383,6 +466,8 @@ const utilisationOptions = [
         personnelIds: personnelIds.map(id => parseInt(id)),
         programme: formData.programmeIds.map((id) => ({ programmeId: Number(id) })),
         prestation: formData.prestationIds.map((id) => ({ prestationId: id })),
+         responsable_id: responsableId ? parseInt(responsableId) : null,
+         responsable_nom: responsableNom || null,
       };
 
       // Créer un FormData pour envoyer les fichiers et les données
@@ -402,14 +487,14 @@ const utilisationOptions = [
         formDataToSend.append('mappeFile', mappeFile);
       }
 
-     // console.log("formDataToSend",formDataToSend);
+      console.log("formDataToSend",localData);
      // console.log("FormData entries:");
       for (let [key, value] of formDataToSend.entries()) {
         console.log(key, value);
       }
 
       // Envoyer la requête avec FormData
-      const response = await api.post('/locaux', formDataToSend, {
+     const response = await api.post('/locaux', formDataToSend, {
         headers: {
           ...headers,
           'Content-Type': 'multipart/form-data'
@@ -432,13 +517,24 @@ const utilisationOptions = [
   };
 
   return (
-    <div className="ml-64 bg-gray-50 min-h-screen">
-      {/* Contenu principal - Formulaire */}
-      <div className="flex-grow p-6 overflow-y-auto">
-        <div className="max-w-5xl mx-auto">
-          <div className="mb-6">
-            <h2 className="text-2xl font-bold text-blue-900 mb-4">Ajouter un nouveau centre</h2>
-            <p className="text-gray-600">Remplissez tous les champs pour créer un nouveau centre</p>
+  <div className="min-h-screen bg-gray-100 flex">
+      {/* Sidebar remains unchanged */}
+      
+
+      {/* Main Content Area - Style inspiré du design existant */}
+      <div className="ml-64 bg-gray-50 min-h-screen w-[calc(100%-16rem)]">
+        <div className="bg-gradient-to-r from-[#F0F2F5] to-[#E5E8EB] text-[#4A4F55] p-6">
+          <h4 className="text-m font-bold mb-1" style={{ color: '#4A4F55' }}>
+            Bienvenue {userData?.name}
+          </h4>
+          <p className="text-[#6B7A99]">Portail de communication interne - Entraide Nationale</p>
+        </div>
+       
+        <div className="p-3 bg-gray-50">
+          {/* Header */}
+        <div className="p-3">
+            <h2 className="text-2xl font-bold text-blue-900">Ajouter un nouveau centre</h2>
+           
           </div>
 
           <form onSubmit={handleSubmit}>
@@ -806,14 +902,33 @@ const utilisationOptions = [
             </FormSection>
 
             {/* Section Personnel */}
-            <FormSection icon={FaUsers} title="Personnel" bgColor="bg-orange-50">
-              <DynamicList
-                label="IDs du personnel"
-                items={personnelIds}
-                setItems={setPersonnelIds}
-                placeholder="ID du personnel (numérique)"
-              />
-            </FormSection>
+           <div className="mb-4">
+  <label className="block font-medium mb-2">Personnel</label>
+  <Select
+    isMulti
+    options={personnelOptions}
+    value={personnelOptions.filter((opt) =>
+      personnelIds.includes(opt.value)
+    )}
+    onChange={handlePersonnelChange}
+    placeholder="Sélectionner une ou plusieurs personnes..."
+  />
+</div>
+
+  <div className="mb-4">
+  <label className="block font-medium mb-2">Responsable de centre</label>
+  <Select
+    options={personnelOptions}
+    value={
+      personnelOptions.find((opt) => opt.value === responsableId) || null
+    }
+    onChange={handleResponsableChange}
+    placeholder="Sélectionner une personne..."
+    isClearable
+  />
+</div>
+
+
 
             {/* Section Observations */}
             <FormSection icon={FaFileAlt} title="Observations" bgColor="bg-gray-50">

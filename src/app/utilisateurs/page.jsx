@@ -17,14 +17,14 @@ const UserManagementPage = () => {
     name: "",
     email: "",
     tele: "",
-    roles: "",
+    roles: [],
     unite: null,
   });
   const [updatedUserData, setUpdatedUserData] = useState({
     name: "",
     email: "",
     tele: "",
-    roles: "",
+    roles: [],
     unite: null,
   });
   const token = getCookie('token'); 
@@ -90,14 +90,14 @@ const roles = [
         name: "",
         email: "",
         tele: "",
-        roles: "",
+        roles: [],
         unite: null,
       });
       setUpdatedUserData({
         name: "",
         email: "",
         tele: "",
-        roles: "",
+        roles: [],
         unite: null,
       });
     } catch (error) {
@@ -125,6 +125,8 @@ const roles = [
         .filter((user) => (filterRole ? user.roles === filterRole : true))
     : [];
 
+
+console.log(filteredUsers);
   return (
     <div className="ml-64 bg-gray-50 min-h-screen">
       {/* Div ajouté en haut de la page */}
@@ -186,7 +188,11 @@ const roles = [
                   <td className="py-2 px-4 border-b">{user.name}</td>
                   <td className="py-2 px-4 border-b">{user.email}</td>
                   <td className="py-2 px-4 border-b">{user.tele}</td>
-                  <td className="py-2 px-4 border-b">{user.roles}</td>
+               <td className="py-2 px-4 border-b">
+  {user.roles?.map(r => r.name).join(", ")}
+</td>
+
+
                   <td className="py-2 px-4 border-b">{user.unite?.nom || "N/A"}</td>
                   <td className="py-2 px-4 border-b flex space-x-2">
                     <button
@@ -248,7 +254,7 @@ const roles = [
             className="w-full px-4 py-3 bg-gray-200 text-gray-900 rounded-md"
             placeholder="Entrez le nom"
             value={newUserData.name}
-            onChange={(e) => setNewUserData({ ...newUserData, name: e.target.value })}
+            onChange={(e) => setNewUserData({ ...newUserData,roles: newUserData.roles.map(r => r.value), name: e.target.value })}
             required
           />
         </div>
@@ -293,20 +299,24 @@ const roles = [
         </div>
 
         <div className="mb-6">
-          <label htmlFor="roles" className="block font-medium mb-2">Rôle</label>
-          <select
-            id="roles"
-            className="w-full px-4 py-3 bg-gray-200 text-gray-900 rounded-md"
-            value={newUserData.roles}
-            onChange={(e) => setNewUserData({ ...newUserData, roles: e.target.value })}
-            required
-          >
-            <option value="">Sélectionnez un rôle</option>
-            {roles.map((role) => (
-              <option key={role.value} value={role.value}>{role.label}</option>
-            ))}
-          </select>
-        </div>
+  <label htmlFor="roles" className="block font-medium mb-2">Rôles</label>
+  <select
+    id="roles"
+    multiple
+    className="w-full px-4 py-3 bg-gray-200 text-gray-900 rounded-md"
+    value={newUserData.roles.map(r => r.value)}  // pour le multi-select
+    onChange={(e) => {
+      const selectedOptions = Array.from(e.target.selectedOptions).map(option => ({ value: option.value, label: option.label }));
+      setNewUserData({ ...newUserData, roles: selectedOptions });
+    }}
+    required
+  >
+    {roles.map((role) => (
+      <option key={role.value} value={role.value}>{role.label}</option>
+    ))}
+  </select>
+</div>
+
 
         <div className="mb-6">
           <label htmlFor="unite" className="block font-medium mb-2">Unité Organisationnelle</label>

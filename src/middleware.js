@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-const baseURL = "http://localhost:8080";
+const baseURL = "https://intramail.entraide.ma/api/";
 export async function middleware(request) {
   const authRoutes = ["/login"];
   const { pathname } = request.nextUrl;

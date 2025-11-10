@@ -2,7 +2,7 @@ import axios from "axios";
 import { setCookie, getCookie, deleteCookie } from "cookies-next";
 
 const client = axios.create({
-    baseURL: "http://localhost:8080",
+    baseURL: "https://intramail.entraide.ma/api/",
     headers: {
         "Content-Type": "application/json",
     },
@@ -15,8 +15,8 @@ client.interceptors.response.use(
             console.log('error 401');
         } if (error.response.status === 403) {
             console.log('error 403');
-         //   deleteCookie('token');
-         //   window.location.href = '/login';
+            deleteCookie('token');
+            window.location.href = '/login';
         }
         return Promise.reject(error);
     }
@@ -127,8 +127,51 @@ export async function getUnits() {
 
 }
 
+export function getOperations() {
+    return async () => {
+        // TODO checks and params to all custom hooks
 
+        const token = getCookie('token');
+        const { data } = await api.get('/receptions', {
+            headers: {
+                Authorization: `Bearer ${token}`,
+            }
+        });
+        return data;
+    };
+}
 
+export async function getOperationsByDelegations(iddeleg) {
+    try {
+      const token = getCookie("token");
+  
+      // Utiliser la syntaxe de template string pour inclure `iddeleg` dans l'URL
+      const response = await api.get(`/receptions/province/${iddeleg}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+  
+     //  console.log(response.data); // Décommentez cette ligne si vous voulez voir la réponse dans la console
+      return response.data;
+    } catch (error) {
+      console.log(error);
+    }
+  }
+  
+export function getProduits() {
+    return async () => {
+        // TODO checks and params to all custom hooks
+
+        const token = getCookie('token');
+        const { data } = await api.get('/produits', {
+            headers: {
+                Authorization: `Bearer ${token}`,
+            }
+        });
+        return data;
+    };
+}
 export function getPrestations() {
     return async () => {
         // TODO checks and params to all custom hooks
@@ -285,3 +328,217 @@ const tokenPayload = async () => {
       };
 
 
+export async function getStockActuel() {
+  try {
+    const token = getCookie("token");
+    
+    const response = await api.get('/reception/details/stockActuel' ,{
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  // console.log(response.data);
+    return response.data;
+    
+  } catch (error) {
+    console.log(error);
+  }
+
+}
+
+
+export async function getPreparation(iddeleg) {
+    try {
+      const token = getCookie("token");
+      
+      const response = await api.get(`/preparation/delegation/${iddeleg}` ,{
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+    console.log("token",token);
+      return response.data;
+      
+    } catch (error) {
+      console.log(error);
+    }
+
+}
+
+export function getPreparations() {
+    return async () => {
+        // TODO checks and params to all custom hooks
+
+        const token = getCookie('token');
+        const { data } = await api.get('/preparation', {
+            headers: {
+                Authorization: `Bearer ${token}`,
+            }
+        });
+        return data;
+    };
+}
+
+
+export async function getDistribution(iddeleg) {
+    try {
+      const token = getCookie("token");
+      
+      const response = await api.get(`/distribution/delegation/${iddeleg}` ,{
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+    // console.log(response.data);
+      return response.data;
+      
+    } catch (error) {
+      console.log(error);
+    }
+
+}
+
+
+export async function getStocktotalByDelegation(iddeleg) {
+    try {
+      const token = getCookie("token");
+  
+      // Utiliser la syntaxe de template string pour inclure `iddeleg` dans l'URL
+      const response = await api.get(`/reception/details/quantite-par-produit`, {
+        params: { delegationId: iddeleg },
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+  
+      // console.log(response.data); // Décommentez cette ligne si vous voulez voir la réponse dans la console
+      return response.data;
+    } catch (error) {
+      console.log(error);
+    }
+  }
+  
+  export function getPartenariats() {
+    return async () => {
+        // TODO checks and params to all custom hooks
+
+        const token = getCookie('token');
+        const { data } = await api.get('/partenariats', {
+            headers: {
+                Authorization: `Bearer ${token}`,
+            }
+        });
+        return data;
+    };
+}
+
+  export function getDomaines() {
+    return async () => {
+        // TODO checks and params to all custom hooks
+
+        const token = getCookie('token');
+        const { data } = await api.get('/api/domaines-partenariat', {
+            headers: {
+                Authorization: `Bearer ${token}`,
+            }
+        });
+        return data;
+    };
+}
+
+  export function getPopulationsCibles() {
+    return async () => {
+        // TODO checks and params to all custom hooks
+
+        const token = getCookie('token');
+        const { data } = await api.get('/api/populations-cibles', {
+            headers: {
+                Authorization: `Bearer ${token}`,
+            }
+        });
+        return data;
+    };
+}
+ export function getContributionsEntraide() {
+    return async () => {
+        // TODO checks and params to all custom hooks
+
+        const token = getCookie('token');
+        const { data } = await api.get('/api/contributions-partenariat', {
+            headers: {
+                Authorization: `Bearer ${token}`,
+            }
+        });
+        return data;
+    };
+}
+
+
+ export function getTypesCentre() {
+    return async () => {
+        // TODO checks and params to all custom hooks
+
+        const token = getCookie('token');
+        const { data } = await api.get('/api/types-centre', {
+            headers: {
+                Authorization: `Bearer ${token}`,
+            }
+        });
+        return data;
+    };
+}
+
+ export function getContributionsPartenaires() {
+    return async () => {
+        // TODO checks and params to all custom hooks
+
+        const token = getCookie('token');
+        const { data } = await api.get('/api/contributions-partenaires', {
+            headers: {
+                Authorization: `Bearer ${token}`,
+            }
+        });
+        return data;
+    };
+
+  
+    
+}
+
+export function downloadPieceJointePartenariat(partenariatId) {
+    return async () => {
+        const token = getCookie('token');
+
+        const url = `/partenariats/${partenariatId}/telecharger`;
+
+        const response = await api.get(url, {
+            headers: {
+                Authorization: `Bearer ${token}`,
+            },
+            responseType: "blob", // obligatoire pour les fichiers
+        });
+
+        // Création du lien pour téléchargement
+        const blobUrl = window.URL.createObjectURL(new Blob([response.data]));
+        const link = document.createElement("a");
+
+        // Récupère le nom du fichier depuis l'entête Content-Disposition si disponible
+        const disposition = response.headers["content-disposition"];
+        let fileName = "piece_jointe.pdf";
+        if (disposition && disposition.includes("filename=")) {
+            fileName = disposition
+                .split("filename=")[1]
+                .replace(/"/g, "")
+                .trim();
+        }
+
+        link.href = blobUrl;
+        link.setAttribute("download", fileName);
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.URL.revokeObjectURL(blobUrl);
+
+        return true; // ou retourne des infos supplémentaires si nécessaire
+    };
+}
