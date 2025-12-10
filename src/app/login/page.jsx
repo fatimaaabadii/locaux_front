@@ -38,7 +38,7 @@ export default function Page() {
       });
     }
   };
-
+console.log(userName, password);
   const { mutate } = useMutation({ mutationFn: login });
 
   const handleSubmit = (e) => {

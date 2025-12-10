@@ -3,7 +3,8 @@
 import React from "react";
 import { useQuery } from "@tanstack/react-query";
 import { FaSearch, FaEnvelope, FaEnvelopeOpen, FaPaperPlane, FaClock } from "react-icons/fa";
-import { getMessage, getCurrentUser } from "/src/api"; 
+import { api,getMessage, getCurrentUser } from "/src/api"; 
+import { getCookie } from 'cookies-next';
 
 // Transformer le JSON backend en données exploitables
 const transformMessages = (messages, currentUser) => {
@@ -35,6 +36,7 @@ const transformMessages = (messages, currentUser) => {
       statut: msg.statut,
       read: msg.statut === "Lu",
       category: isSent ? "envoyés" : "reçus",
+      piecesJointes: msg.piecesJointes || [], // <-- Ajouté ici
     };
   });
 };
@@ -58,7 +60,7 @@ export default function MessageriePage() {
     () => transformMessages(rawMessages, userData),
     [rawMessages, userData]
   );
-
+console.log(rawMessages);
   // Filtrer les messages en fonction de l'onglet actif et de la recherche
   const filteredMessages = messages?.filter((message) => {
     const matchesSearch = message.subject.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -73,6 +75,7 @@ export default function MessageriePage() {
   React.useEffect(() => {
     setSelectedMessage(null);
   }, [activeTab]);
+//console.log(selectedMessage.piecesJointes);
 
   const getTabCount = (tab) => {
     if (!messages) return 0;
@@ -91,6 +94,45 @@ export default function MessageriePage() {
     if (diffDays <= 7) return `Il y a ${diffDays - 1} jours`;
     return date.toLocaleDateString('fr-FR');
   };
+
+
+// Fonction utilitaire pour nettoyer le HTML
+const parseHtmlContent = (html) => {
+  if (!html) return "";
+  // Remplacer <p> par saut de ligne et supprimer les autres balises
+ return html .replace(/<p>/gi, "") .replace(/<\/p>/gi, "\n\n") .replace(/<br\s*\/?>/gi, "\n") .replace(/<strong>/gi, "") .replace(/<\/strong>/gi, "") .replace(/<em>/gi, "") .replace(/<\/em>/gi, "") .replace(/&nbsp;/gi, " ") .trim();
+};
+
+const handleDownloadClick = async (e, piece) => {
+  e.preventDefault();
+
+  try {
+    const token = getCookie('token');
+    const messageId = Number(selectedMessage.id); // ou parseInt
+    const pieceId = Number(piece.id);
+    const url = `http://localhost:8080/message/${messageId}/pieces/${pieceId}/telecharger`;
+
+    const response = await api.get(url, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      responseType: 'blob',
+    });
+
+    const blob = new Blob([response.data], { type: response.headers['content-type'] });
+    const downloadUrl = window.URL.createObjectURL(blob);
+
+    const link = document.createElement('a');
+    link.href = downloadUrl;
+    link.setAttribute('download', piece.nomFichier);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(downloadUrl);
+  } catch (error) {
+    console.error('Erreur lors du téléchargement du fichier :', error);
+  }
+};
 
   return (
     <div className="ml-64 bg-gray-50 min-h-screen">
@@ -269,15 +311,41 @@ export default function MessageriePage() {
               </div>
 
               {/* Contenu du message */}
-              <div className="flex-1 p-6 overflow-y-auto">
-                <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-6 h-full shadow-inner border border-gray-200">
-                  <div className="bg-white rounded-lg p-6 h-full shadow-sm">
-                    <div className="whitespace-pre-wrap text-gray-900 leading-relaxed text-base">
-                      {selectedMessage.content}
-                    </div>
-                  </div>
-                </div>
-              </div>
+              {/* Contenu du message avec pièces jointes */}
+<div className="flex-1 p-6 overflow-y-auto">
+  <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-6 h-full shadow-inner border border-gray-200">
+    <div className="bg-white rounded-lg p-6 h-full shadow-sm flex flex-col space-y-6">
+      
+      {/* Pièces jointes */}
+     {selectedMessage.piecesJointes && selectedMessage.piecesJointes.length > 0 && (
+  <div>
+    <h4 className="font-semibold text-gray-900 mb-3">Pièces jointes :</h4>
+    <ul className="space-y-2">
+      {selectedMessage.piecesJointes.map((piece) => (
+        <li key={piece.id} className="flex items-center justify-between border p-2 rounded hover:bg-gray-50">
+          <span className="text-gray-800 truncate">{piece.nomFichier}</span>
+          <button
+            onClick={(e) => handleDownloadClick(e, piece)}
+            className="text-blue-600 hover:underline text-sm"
+          >
+            Télécharger
+          </button>
+        </li>
+      ))}
+    </ul>
+  </div>
+)}
+
+
+      {/* Contenu du message */}
+      <div className="whitespace-pre-wrap text-gray-900 leading-relaxed text-base">
+        {parseHtmlContent(selectedMessage.content)}
+      </div>
+
+    </div>
+  </div>
+</div>
+
             </>
           ) : (
             <div className="flex items-center justify-center h-full bg-gradient-to-br from-gray-50 to-gray-100">
@@ -295,7 +363,30 @@ export default function MessageriePage() {
             </div>
           )}
         </div>
+
+
+
+
+
+
+
+
+
+
+
+        
       </div>
+
+
+
+   
+
+
+
+    
+
+
+
     </div>
   );
 }

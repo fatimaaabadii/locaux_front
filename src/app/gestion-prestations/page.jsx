@@ -17,7 +17,7 @@ const PrestationManagementPage = () => {
     nomPrestation: "",
     description: "",
     dateLancement: "",
-    programmeId: "",
+    programmes: [],
     typePrestationId: "",
   });
 
@@ -32,7 +32,8 @@ const PrestationManagementPage = () => {
     queryKey: ["prestations"],
     queryFn: getPrestations(),
   });
-
+  console.log(prestations);
+  
   const { data: programmes = [] } = useQuery({
     queryKey: ["programmes"],
     queryFn: getProgrammes(),
@@ -80,7 +81,7 @@ const PrestationManagementPage = () => {
       nomPrestation: "",
       description: "",
       dateLancement: "",
-      programmeId: "",
+      programmes: [],
       typePrestationId: "",
     });
     setSelectedPrestation(null);
@@ -91,7 +92,7 @@ const PrestationManagementPage = () => {
       nomPrestation: "",
       description: "",
       dateLancement: "",
-      programmeId: "",
+      programmes: [],
       typePrestationId: "",
     });
     setShowAddModal(true);
@@ -100,12 +101,15 @@ const PrestationManagementPage = () => {
   const handleEditPrestation = (prestationId) => {
     const prestation = prestations.find(p => p.prestationId === prestationId);
     if (prestation) {
+      console.log("Prestation à éditer:", prestation);
+      console.log("Programmes de la prestation:", prestation.programme);
+      
       setSelectedPrestation(prestation);
       setFormData({
         nomPrestation: prestation.nomPrestation || "",
         description: prestation.description || "",
         dateLancement: prestation.dateLancement || "",
-        programmeId: prestation.programme?.programmeId || "",
+        programmes: Array.isArray(prestation.programme) ? prestation.programme : [],
         typePrestationId: prestation.typePrestation?.typePrestationId || "",
       });
       setShowEditModal(true);
@@ -120,13 +124,25 @@ const PrestationManagementPage = () => {
 
   const handleSave = () => {
     // Préparer les données avec la structure attendue par Hibernate
+    const programmesFormatted = (formData.programmes && formData.programmes.length > 0) 
+      ? formData.programmes.map((p) => {
+          // Si p est déjà un objet avec programmeId, on l'utilise directement
+          const id = typeof p === 'object' ? p.programmeId : p;
+          return { programmeId: Number(id) };
+        })
+      : [];
+
     const dataToSend = {
       nomPrestation: formData.nomPrestation,
       description: formData.description,
       dateLancement: formData.dateLancement,
-      programme: formData.programmeId ? { programmeId: Number(formData.programmeId) } : null,
+      programme: programmesFormatted, // Changé de "programmes" à "programme" (singulier)
       typePrestation: formData.typePrestationId ? { typePrestationId: Number(formData.typePrestationId) } : null,
     };
+
+    console.log("FormData avant envoi:", formData);
+    console.log("Programmes formatés:", programmesFormatted);
+    console.log("Data à envoyer:", dataToSend);
 
     if (selectedPrestation) {
       updateMutation.mutate({
@@ -199,7 +215,7 @@ const PrestationManagementPage = () => {
                   <th className="py-2 px-4 border-b">Nom</th>
                   <th className="py-2 px-4 border-b">Description</th>
                   <th className="py-2 px-4 border-b">Date de lancement</th>
-                  <th className="py-2 px-4 border-b">Programme</th>
+                  <th className="py-2 px-4 border-b">Programmes</th>
                   <th className="py-2 px-4 border-b">Type de prestation</th>
                   <th className="py-2 px-4 border-b">Actions</th>
                 </tr>
@@ -210,7 +226,9 @@ const PrestationManagementPage = () => {
                     <td className="py-2 px-4 border-b">{prestation.nomPrestation}</td>
                     <td className="py-2 px-4 border-b">{prestation.description}</td>
                     <td className="py-2 px-4 border-b">{prestation.dateLancement}</td>
-                    <td className="py-2 px-4 border-b">{prestation.programme?.nomProgramme || '-'}</td>
+                    <td className="py-2 px-4 border-b">
+                      {prestation.programme?.map((p) => p.nomProgramme).join(", ") || "-"}
+                    </td>
                     <td className="py-2 px-4 border-b">{prestation.typePrestation?.type_prestation || '-'}</td>
                     <td className="py-2 px-4 border-b flex space-x-2">
                       <button
@@ -276,18 +294,80 @@ const PrestationManagementPage = () => {
 
             <div className="mb-6">
               <label className="block font-medium mb-2">Programme</label>
-              <select
-                className="w-full px-4 py-3 bg-gray-200 text-gray-900 rounded-md"
-                value={formData.programmeId}
-                onChange={(e) => updateFormData('programmeId', e.target.value)}
-              >
-                <option value="">Sélectionner un programme</option>
-                {programmes.map((programme) => (
-                  <option key={programme.programmeId} value={programme.programmeId}>
+
+              {/* Badges des programmes sélectionnés */}
+              <div className="flex flex-wrap gap-2 mb-2">
+                {(formData.programmes || []).map((programme) => (
+                  <span
+                    key={programme.programmeId}
+                    className="flex items-center gap-1 bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm"
+                  >
                     {programme.nomProgramme}
-                  </option>
+                    <button
+                      type="button"
+                      className="ml-1 font-bold"
+                      onClick={() =>
+                        updateFormData(
+                          'programmes',
+                          formData.programmes.filter((p) => p.programmeId !== programme.programmeId)
+                        )
+                      }
+                    >
+                      ×
+                    </button>
+                  </span>
                 ))}
-              </select>
+              </div>
+
+              {/* Select pour ajouter un programme 
+              <select
+                value=""
+                onChange={(e) => {
+                  const selectedProgramme = programmes.find(
+                    (p) => p.programmeId === parseInt(e.target.value)
+                  );
+                  if (
+                    selectedProgramme &&
+                    !formData.programmes?.some((p) => p.programmeId === selectedProgramme.programmeId)
+                  ) {
+                    updateFormData('programmes', [...(formData.programmes || []), selectedProgramme]);
+                  }
+                }}
+                className="w-full px-4 py-3 bg-gray-200 text-gray-900 rounded-md"
+              >
+                <option value="">Sélectionner un programme...</option>
+                {programmes
+                  .filter(
+                    (p) => !formData.programmes?.some((selected) => selected.programmeId === p.programmeId)
+                  )
+                  .map((programme) => (
+                    <option key={programme.programmeId} value={programme.programmeId}>
+                      {programme.nomProgramme}
+                    </option>
+                  ))}
+              </select>*/}
+
+
+              <select
+  value={formData.programmes[0]?.programmeId || ""}
+  onChange={(e) => {
+    const selectedProgramme = programmes.find(
+      (p) => p.programmeId === parseInt(e.target.value)
+    );
+    if (selectedProgramme) {
+      // Remplacer l'ancien programme par le nouveau dans un tableau
+      updateFormData('programmes', [selectedProgramme]);
+    }
+  }}
+  className="w-full px-4 py-3 bg-gray-200 text-gray-900 rounded-md"
+>
+  <option value="">Sélectionner un programme...</option>
+  {programmes.map((programme) => (
+    <option key={programme.programmeId} value={programme.programmeId}>
+      {programme.nomProgramme}
+    </option>
+  ))}
+</select>
             </div>
 
             <div className="mb-6">

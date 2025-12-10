@@ -375,9 +375,9 @@ const handleResponsableChange = (selectedOption) => {
   ];
 
   const typeLocalOptions = [
-    { value: "centre social", label: "Centre Social" },
-    { value: "Délégation", label: "Délégation" },
-    { value: "Coordination", label: "Coordination" },
+    { value: "Centre ou établissement social", label: "Centre ou établissement social" },
+    { value: "Direction provinciale", label: "Direction provinciale" },
+    { value: "Direction régionale", label: "Direction régionale" },
     { value: "Dépot", label: "Dépot" },
     { value: "Autre", label: "Autre" },
   ];
@@ -388,13 +388,36 @@ const handleResponsableChange = (selectedOption) => {
     { value: "Autre", label: "Autre" },
   ];
 
-  const proprieteOptions = [
-    { value: "Entraide Nationale", label: "Entraide Nationale" },
-    { value: "Commune", label: "Commune" },
-    { value: "Domaine", label: "Domaine" },
-    { value: "Association", label: "Association" },
-    { value: "Autre", label: "Autre" },
-  ];
+ const proprieteOptions = [
+  { value: "Entraide Nationale", label: "Entraide Nationale" },
+  { value: "Commune", label: "Commune" },
+  { value: "Domaine", label: "Domaine" },
+  { value: "Association", label: "Association" },
+  { value: "Éducation Nationale", label: "Éducation Nationale" },
+  { value: "Santé", label: "Santé" },
+  { value: "Force armée royale", label: "Force armée royale" },
+  { value: "Jeunesse et Sport", label: "Jeunesse et Sport" },
+  { value: "Formation professionnelle", label: "Formation professionnelle" },
+  { value: "Promotion Nationale", label: "Promotion Nationale" },
+  { value: "Force auxiliaire", label: "Force auxiliaire" },
+  { value: "Gendarmerie royale", label: "Gendarmerie royale" },
+  { value: "Groupe Al Omrane", label: "Groupe Al Omrane" },
+  { value: "Fondation Mohamed V", label: "Fondation Mohamed V" },
+  { value: "Administration pénitentiaire", label: "Administration pénitentiaire" },
+  { value: "INDH", label: "INDH" },
+  { value: "Awqaf", label: "Awqaf" },
+  { value: "Eaux et forêts", label: "Eaux et forêts" },
+  { value: "Terres de Kish", label: "Terres de Kish" },
+  { value: "Groupes dynastiques SOULALITE", label: "Groupes dynastiques SOULALITE" },
+  { value: "Une personne", label: "Une personne" },
+  { value: "Une entreprise", label: "Une entreprise" },
+  { value: "Une coopérative", label: "Une coopérative" },
+  { value: "Église", label: "Église" },
+  { value: "Croix rouge", label: "Croix rouge" },
+  { value: "Croissant rouge", label: "Croissant rouge" },
+  { value: "Autre", label: "Autre" }
+];
+
 
   const etatConstructionOptions = [
     { value: "bon", label: "Bon" },

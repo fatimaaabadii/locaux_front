@@ -2,7 +2,8 @@ import axios from "axios";
 import { setCookie, getCookie, deleteCookie } from "cookies-next";
 
 const client = axios.create({
-    baseURL: "https://intramail.entraide.ma/api/",
+   // baseURL: "https://intramail.entraide.ma/api/",
+   baseURL: "http://localhost:8080",
     headers: {
         "Content-Type": "application/json",
     },

@@ -85,6 +85,8 @@ const Page = () => {
   enabled: !!userData?.id, // <-- ne s'exécute que si userData.id est défini
   initialData: 0,           // <-- optionnel, pour éviter undefined
 });
+
+console.log(userData);
 const { data: totalMessagesEnvoye } = useQuery({
   queryKey: ["totalMessagesenv", Number(userData?.id)],
   queryFn: async () => {
@@ -161,7 +163,23 @@ const { data: totalMessagesEnvoye } = useQuery({
       </div>
 
     
-     
+{/* Bloc Description compact et plus large horizontalement */}
+<div className="px-6 py-4 my-4 bg-gradient-to-r from-blue-50 to-white rounded-lg shadow-md border border-blue-100 transform transition-all hover:scale-105 duration-300 max-w-5xl mx-auto">
+  <h3 className="text-lg font-semibold text-blue-900 mb-2">
+    À propos de la plateforme
+  </h3>
+  <p className="text-gray-700 text-sm leading-relaxed">
+    Cette plateforme représente un système d&apos;information destiné à optimiser l&apos;échange de données entre les différents services, tant internes qu&apos;externes, de l&apos;Entraide Nationale.
+    Elle assure la collecte, la centralisation et le stockage des informations relatives aux centres, permettant ainsi leur consultation à tout moment et en temps réel.
+    Le système produit automatiquement des statistiques détaillées couvrant l&apos;ensemble des volets d&apos;intervention à tous les niveaux de la hiérarchie administrative.
+  </p>
+  <p className="mt-3 text-xs text-gray-500 italic">
+    Découvrez comment la plateforme facilite la communication et l'accès aux informations pour tous les services.
+  </p>
+</div>
+
+
+
 
 
 <div className="p-6 mt-6 bg-white rounded-lg shadow-sm border border-gray-100 flex justify-center items-start">

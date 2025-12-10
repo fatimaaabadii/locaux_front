@@ -171,7 +171,7 @@ const ProgrammeManagementPage = () => {
                 <tr>
                   <th className="py-2 px-4 border-b">Nom</th>
                   <th className="py-2 px-4 border-b">Description</th>
-                  <th className="py-2 px-4 border-b">Date de lancement</th>
+                  <th className="py-2 px-4 border-b">Date de création</th>
                   <th className="py-2 px-4 border-b">Actions</th>
                 </tr>
               </thead>
@@ -234,7 +234,7 @@ const ProgrammeManagementPage = () => {
             </div>
 
             <div className="mb-6">
-              <label className="block font-medium mb-2">Date de Lancement</label>
+              <label className="block font-medium mb-2">Date de création</label>
               <input
                 type="date"
                 className="w-full px-4 py-3 bg-gray-200 text-gray-900 rounded-md"
