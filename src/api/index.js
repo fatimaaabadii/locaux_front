@@ -56,6 +56,30 @@ export function getProgrammes() {
 }
 
 
+
+
+export function getStatistiquesPartenariats() {
+    return async () => {
+        // TODO checks and params to all custom hooks
+
+        const token = getCookie('token');
+        const { data } = await api.get('/api/statistiques/partenariats/dashboard', {
+            headers: {
+                Authorization: `Bearer ${token}`,
+            }
+        });
+        return data;
+    };
+}
+
+
+
+
+
+
+
+
+
 export function getMessage() {
     return async () => {
         // TODO checks and params to all custom hooks

@@ -1,8 +1,9 @@
 "use client";
-import React, { useState,  useMemo  } from "react";
+import React, { useState, useMemo } from "react";
 import Link from "next/link";
-import Select from "react-select"; 
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import Select from "react-select";
+import { useQuery } from "@tanstack/react-query";
+
 import {
   FaSearch,
   FaEye,
@@ -27,9 +28,10 @@ import {
   FaUpload,
   FaFile,
   FaProjectDiagram,
+  FaTrash,
 } from "react-icons/fa";
 import { getCookie, deleteCookie } from "cookies-next";
-import { api, getCurrentUser, getLocaux, getProgrammes,getPrestations } from "/src/api";
+import { api, getCurrentUser, getProgrammes, getPrestations } from "/src/api";
 
 // Composant pour les sections du formulaire
 const FormSection = ({ icon: Icon, title, children, bgColor = "bg-gray-50" }) => (
@@ -126,72 +128,15 @@ const FormField = ({
   </div>
 );
 
-// Composant pour les listes dynamiques
-const DynamicList = ({ label, items, setItems, placeholder = "Ajouter un élément" }) => {
-  const [newItem, setNewItem] = useState("");
-
-  const addItem = () => {
-    if (newItem.trim() && !items.includes(newItem.trim())) {
-      setItems([...items, newItem.trim()]);
-      setNewItem("");
-    }
-  };
-
-  const removeItem = (index) => {
-    setItems(items.filter((_, i) => i !== index));
-  };
-
-  return (
-    <div className="mb-4">
-      <label className="block text-sm font-medium text-gray-700 mb-2">{label}</label>
-      <div className="flex gap-2 mb-2">
-        <input
-          type="text"
-          value={newItem}
-          onChange={(e) => setNewItem(e.target.value)}
-          placeholder={placeholder}
-          className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addItem())}
-        />
-        <button
-          type="button"
-          onClick={addItem}
-          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors duration-200"
-        >
-          <FaPlus size={14} />
-        </button>
-      </div>
-      <div className="space-y-1">
-        {items.map((item, index) => (
-          <div key={index} className="flex items-center justify-between bg-gray-100 px-3 py-2 rounded-md">
-            <span className="text-sm text-gray-700">{item}</span>
-            <button
-              type="button"
-              onClick={() => removeItem(index)}
-              className="text-red-500 hover:text-red-700 transition-colors duration-200"
-            >
-              <FaTimes size={12} />
-            </button>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-};
-
 const AddCentrePage = () => {
   const { data: userData } = useQuery({
     queryKey: ["user"],
     queryFn: getCurrentUser,
   });
 
+  const provinceSymbol = userData?.province?.symbols;
 
-
-
-const provinceSymbol = userData?.province?.symbols;
-  const [selectedPersonnes, setSelectedPersonnes] = useState([]);
-
-  // Étape 1 : Récupérer toutes les provinces
+  // Récupérer toutes les provinces
   const { data: provinces, isLoading: loadingProvinces } = useQuery({
     queryKey: ["provinces"],
     queryFn: async () => {
@@ -206,11 +151,17 @@ const provinceSymbol = userData?.province?.symbols;
     },
   });
 
-  // Étape 2 : Trouver la province du user
   const provinceData = provinces?.find((p) => p.symbols === provinceSymbol);
   const provinceId = provinceData?.id;
+  const populationOptions = [
+  "Famille",
+  "Femmes en situation difficile",
+  "Enfants en situation difficile",
+  "Personnes âgées",
+  "Personnes en situation de handicap",
+];
 
-  // Étape 3 : Charger les personnes de cette province
+  // Charger les personnes de cette province
   const { data: personnes, isLoading: loadingPersonnes } = useQuery({
     queryKey: ["personnesProvince", provinceId],
     queryFn: async () => {
@@ -228,31 +179,19 @@ const provinceSymbol = userData?.province?.symbols;
     },
     enabled: !!provinceId,
   });
-console.log(personnes);
-  // Étape 4 : Gérer la sélection multiple
 
+  const { data: prestations = [] } = useQuery({
+    queryKey: ["prestations"],
+    queryFn: getPrestations(),
+  });
 
-
-
-
-
-
-
-  
-  const { data: prestations = [], isLoading, error } = useQuery({
-      queryKey: ["prestations"],
-      queryFn: getPrestations(),
-    });
- // console.log(prestations)
-    const { data: programmes = [] } = useQuery({
-      queryKey: ["programmes"],
-      queryFn: getProgrammes(),
-    });
-  //console.log(userData);
+  const { data: programmes = [] } = useQuery({
+    queryKey: ["programmes"],
+    queryFn: getProgrammes(),
+  });
 
   // État initial du formulaire
   const [formData, setFormData] = useState({
-    // Informations générales
     nomLocalFrancais: "",
     nomLocalArabe: "",
     code: "",
@@ -261,13 +200,8 @@ console.log(personnes);
     adresse: "",
     milieu: "",
     type_local: "",
-    gestion: "",
     autorise: "",
     capaciteAccueil: "",
-    programmeIds: [],
-    prestationIds: [],
-
-    // Construction et dimensions
     etat_construction: "",
     date_construction: "",
     superficie_totale_terrain: "",
@@ -275,8 +209,6 @@ console.log(personnes);
     superficie_totale_etages: "",
     nombre_etage: "",
     utilisation: "",
-
-    // Juridique et financier
     propriete: "",
     numero_titre_foncier: "",
     date_achat_local: "",
@@ -285,90 +217,118 @@ console.log(personnes);
     loyer: false,
     litige: false,
     raisons_conflit: "",
-
-    // Équipements
     eau: false,
     electricite: false,
     plan_de_situation: false,
     plans_architecture: false,
-
-    // Autres
     observation: "",
   });
-const prestationOptions = useMemo(() => {
-    if (!formData.programmeIds.length) return [];
-    return prestations
-      .filter((p) => formData.programmeIds.includes(p.programme.programmeId))
-      .map((p) => ({
-        value: p.prestationId,
-        label: p.nomPrestation,
-      }));
-  }, [prestations, formData.programmeIds]);
-
-  const handlePrestationChange = (selectedOptions) => {
-    setFormData((prev) => ({
-      ...prev,
-      prestationIds: selectedOptions ? selectedOptions.map((opt) => opt.value) : [],
-    }));
-  };
-
-
-
-  const personnelOptions = useMemo(() => {
-     if (!personnes || !Array.isArray(personnes)) return [];
-  return personnes.map((p) => ({
-    value: p.id,
-    label: p.nom_prenom_fr,
-  }));
-}, [personnes]);
-
-// Gérer la sélection multi
-const handlePersonnelChange = (selectedOptions) => {
-  setPersonnelIds(selectedOptions ? selectedOptions.map((opt) => opt.value) : []);
-};
-
-const handleResponsableChange = (selectedOption) => {
-  if (selectedOption) {
-    setResponsableId(selectedOption.value);
-    setResponsableNom(selectedOption.label);
-  } else {
-    setResponsableId(null);
-    setResponsableNom(null);
-  }
-};
-
-
 
   // États pour les fichiers
   const [certificatFile, setCertificatFile] = useState(null);
   const [mappeFile, setMappeFile] = useState(null);
 
   // États pour les listes dynamiques
-  const [composantInput, setComposantInput] = useState([]);
-  const [etagesInput, setEtagesInput] = useState([]);
-  const [personnelIds, setPersonnelIds] = useState([]);
-   const [responsableId, setResponsableId] = useState(null);
-   const [responsableNom, setResponsableNom] = useState(null);
+  const [composantInput, setComposantInput] = useState("");
+  const [etagesInput, setEtagesInput] = useState("");
+
+  // État pour les localProgrammes (nouveau format)
+  const [localProgrammes, setLocalProgrammes] = useState([]);
+
+  // Options pour le personnel
+  const personnelOptions = useMemo(() => {
+    if (!personnes || !Array.isArray(personnes)) return [];
+    return personnes.map((p) => ({
+      value: p.id,
+      label: p.nom_prenom_fr,
+    }));
+  }, [personnes]);
+
+  // Options pour les programmes
   const programmeOptions = programmes.map((p) => ({
     value: p.programmeId,
     label: p.nomProgramme,
   }));
-  /*const handleProgrammeChange = (selectedOptions) => {
-    setFormData((prev) => ({
-      ...prev,
-      programmeIds: selectedOptions ? selectedOptions.map((opt) => opt.value) : [],
-    }));
-  };*/
-  const handleProgrammeChange = (selectedOptions) => {
-    const selectedIds = selectedOptions ? selectedOptions.map((opt) => opt.value) : [];
-    setFormData((prev) => ({
-      ...prev,
-      programmeIds: selectedIds,
-      prestationIds: [], // reset prestations si on change les programmes
-    }));
+
+  // Ajouter un nouveau programme
+  const handleAddProgramme = () => {
+    setLocalProgrammes([
+      ...localProgrammes,
+      {
+        tempId: Date.now(), // ID temporaire pour React key
+        programme: null,
+        prestations: [],
+        personnelIds: [],
+        responsableId: null,
+        responsableNom: null,
+        gestion: "",
+        gestionSiAutre:"",
+        populationCible: [],
+      },
+    ]);
   };
 
-  // Options pour les champs select
+
+  const handleResponsableChange = (tempId, selectedOption) => {
+  setLocalProgrammes((prev) =>
+    prev.map((lp) => {
+      if (lp.tempId === tempId) {
+        return {
+          ...lp,
+          responsableId: selectedOption ? selectedOption.value : null,
+          responsableNom: selectedOption ? selectedOption.label : null,
+        };
+      }
+      return lp;
+    })
+  );
+};
+
+
+
+  // Supprimer un programme
+  const handleRemoveProgramme = (tempId) => {
+    setLocalProgrammes(localProgrammes.filter((lp) => lp.tempId !== tempId));
+  };
+
+  // Mettre à jour un programme
+  const handleProgrammeChange = (tempId, field, value) => {
+    setLocalProgrammes(
+      localProgrammes.map((lp) => {
+        if (lp.tempId === tempId) {
+          const updated = { ...lp, [field]: value };
+          
+          // Si on change le programme, réinitialiser les prestations
+          if (field === "programme") {
+            updated.prestations = [];
+          }
+          
+          return updated;
+        }
+        return lp;
+      })
+    );
+  };
+
+  // Options pour les prestations d'un programme spécifique
+  const getPrestationOptionsForProgramme = (programmeId) => {
+    if (!programmeId) return [];
+    return prestations
+      .filter((p) => {
+        // Vérifier si programme est un tableau et contient le programmeId
+        if (Array.isArray(p.programme) && p.programme.length > 0) {
+          return p.programme[0].programmeId === programmeId;
+        }
+        // Fallback si programme est un objet direct
+        return p.programme?.programmeId === programmeId;
+      })
+      .map((p) => ({
+        value: p.prestationId,
+        label: p.nomPrestation,
+      }));
+  };
+
+  // Options pour les select
   const milieuOptions = [
     { value: "urbain", label: "Urbain" },
     { value: "rural", label: "Rural" },
@@ -383,41 +343,19 @@ const handleResponsableChange = (selectedOption) => {
   ];
 
   const gestionOptions = [
+    
     { value: "Entraide Nationale", label: "Entraide Nationale" },
+    { value: "Cogestion", label: "Cogestion" },
+    { value: "Gestion déléguée", label: "Gestion déléguée" },
+  ];
+
+  const proprieteOptions = [
+    { value: "Entraide Nationale", label: "Entraide Nationale" },
+    { value: "Commune", label: "Commune" },
+    { value: "Domaine", label: "Domaine" },
     { value: "Association", label: "Association" },
     { value: "Autre", label: "Autre" },
   ];
-
- const proprieteOptions = [
-  { value: "Entraide Nationale", label: "Entraide Nationale" },
-  { value: "Commune", label: "Commune" },
-  { value: "Domaine", label: "Domaine" },
-  { value: "Association", label: "Association" },
-  { value: "Éducation Nationale", label: "Éducation Nationale" },
-  { value: "Santé", label: "Santé" },
-  { value: "Force armée royale", label: "Force armée royale" },
-  { value: "Jeunesse et Sport", label: "Jeunesse et Sport" },
-  { value: "Formation professionnelle", label: "Formation professionnelle" },
-  { value: "Promotion Nationale", label: "Promotion Nationale" },
-  { value: "Force auxiliaire", label: "Force auxiliaire" },
-  { value: "Gendarmerie royale", label: "Gendarmerie royale" },
-  { value: "Groupe Al Omrane", label: "Groupe Al Omrane" },
-  { value: "Fondation Mohamed V", label: "Fondation Mohamed V" },
-  { value: "Administration pénitentiaire", label: "Administration pénitentiaire" },
-  { value: "INDH", label: "INDH" },
-  { value: "Awqaf", label: "Awqaf" },
-  { value: "Eaux et forêts", label: "Eaux et forêts" },
-  { value: "Terres de Kish", label: "Terres de Kish" },
-  { value: "Groupes dynastiques SOULALITE", label: "Groupes dynastiques SOULALITE" },
-  { value: "Une personne", label: "Une personne" },
-  { value: "Une entreprise", label: "Une entreprise" },
-  { value: "Une coopérative", label: "Une coopérative" },
-  { value: "Église", label: "Église" },
-  { value: "Croix rouge", label: "Croix rouge" },
-  { value: "Croissant rouge", label: "Croissant rouge" },
-  { value: "Autre", label: "Autre" }
-];
-
 
   const etatConstructionOptions = [
     { value: "bon", label: "Bon" },
@@ -430,25 +368,21 @@ const handleResponsableChange = (selectedOption) => {
     { value: "non", label: "Non" },
     { value: "en cours", label: "En cours" },
   ];
-const utilisationOptions = [
+
+  const utilisationOptions = [
     { value: "Utilisé", label: "Utilisé" },
     { value: "Fermé", label: "Fermé" },
     { value: "En rénovation", label: "En rénovation" },
   ];
 
-  // Gestionnaire de changement pour les champs du formulaire
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : value
+      [name]: type === "checkbox" ? checked : value,
     }));
   };
-  const handleMultiSelectChange = (e) => {
-    const values = Array.from(e.target.selectedOptions, (opt) => opt.value);
-    setFormData((prev) => ({ ...prev, programmeIds: values }));
-  };
-  // Gestionnaire de changement pour les fichiers
+
   const handleFileChange = (e) => {
     const { name, files } = e.target;
     if (files && files[0]) {
@@ -460,25 +394,37 @@ const utilisationOptions = [
     }
   };
 
-  // Fonction de soumission du formulaire
   const token = getCookie("token");
   const headers = {
-    Authorization: `Bearer ${token}`
+    Authorization: `Bearer ${token}`,
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     try {
       const etages_utilises = etagesInput
-  .split(",")           // séparer par virgule
-  .map(e => e.trim())   // enlever les espaces
-  .filter(e => e !== "");
-   const composant = composantInput
-  .split(",")           // séparer par virgule
-  .map(e => e.trim())   // enlever les espaces
-  .filter(e => e !== "");
-      // Créer l'objet local avec toutes les données
+        .split(",")
+        .map((e) => e.trim())
+        .filter((e) => e !== "");
+
+      const composant = composantInput
+        .split(",")
+        .map((e) => e.trim())
+        .filter((e) => e !== "");
+
+      // Préparer les localProgrammes pour l'envoi
+      const formattedLocalProgrammes = localProgrammes.map((lp) => ({
+        programme: { programmeId: lp.programme },
+        prestations: lp.prestations.map((id) => ({ prestationId: id })),
+        personnelIds: lp.personnelIds.map((id) => parseInt(id)),
+        responsableId: lp.responsableId ? parseInt(lp.responsableId) : null,
+        responsableNom: lp.responsableNom || null,
+        gestion: lp.gestion || "",
+        gestionSiAutre:lp.gestionSiAutre || "",
+        populationCible: lp.populationCible || [],
+      }));
+
       const localData = {
         ...formData,
         composant: composant,
@@ -486,78 +432,52 @@ const utilisationOptions = [
         province: {
           id: userData?.province?.id,
         },
-        personnelIds: personnelIds.map(id => parseInt(id)),
-        programme: formData.programmeIds.map((id) => ({ programmeId: Number(id) })),
-        prestation: formData.prestationIds.map((id) => ({ prestationId: id })),
-         responsable_id: responsableId ? parseInt(responsableId) : null,
-         responsable_nom: responsableNom || null,
+        localProgrammes: formattedLocalProgrammes,
       };
 
-      // Créer un FormData pour envoyer les fichiers et les données
       const formDataToSend = new FormData();
-      
-      // Pour @RequestPart, créer un blob avec le type application/json
       const localBlob = new Blob([JSON.stringify(localData)], {
-        type: 'application/json'
+        type: "application/json",
       });
-      formDataToSend.append('local', localBlob);
-      
-      // Ajouter les fichiers s'ils existent
+      formDataToSend.append("local", localBlob);
+
       if (certificatFile) {
-        formDataToSend.append('certificatFile', certificatFile);
+        formDataToSend.append("certificatFile", certificatFile);
       }
       if (mappeFile) {
-        formDataToSend.append('mappeFile', mappeFile);
+        formDataToSend.append("mappeFile", mappeFile);
       }
 
-      console.log("formDataToSend",localData);
-     // console.log("FormData entries:");
-      for (let [key, value] of formDataToSend.entries()) {
-        console.log(key, value);
-      }
+      console.log("formDataToSend", formDataToSend);
 
-      // Envoyer la requête avec FormData
-     const response = await api.post('/locaux', formDataToSend, {
+      const response = await api.post("/locaux", formDataToSend, {
         headers: {
           ...headers,
-          'Content-Type': 'multipart/form-data'
-        }
+          "Content-Type": "multipart/form-data",
+        },
       });
 
       alert("Centre ajouté avec succès !");
-      // Rediriger vers la liste des locaux
       window.location.href = "/locaux";
-      
     } catch (error) {
       console.error("Erreur lors de l'ajout du centre:", error);
       alert("Erreur lors de l'ajout du centre. Veuillez réessayer.");
     }
   };
 
-  const logout = () => {
-    deleteCookie("token");
-    window.location.href = "/login";
-  };
-
   return (
-  <div className="min-h-screen bg-gray-100 flex">
-      {/* Sidebar remains unchanged */}
-      
-
-      {/* Main Content Area - Style inspiré du design existant */}
+    <div className="min-h-screen bg-gray-100 flex">
       <div className="ml-64 bg-gray-50 min-h-screen w-[calc(100%-16rem)]">
         <div className="bg-gradient-to-r from-[#F0F2F5] to-[#E5E8EB] text-[#4A4F55] p-6">
-          <h4 className="text-m font-bold mb-1" style={{ color: '#4A4F55' }}>
+          <h4 className="text-m font-bold mb-1" style={{ color: "#4A4F55" }}>
             Bienvenue {userData?.name}
           </h4>
           <p className="text-[#6B7A99]">Portail de communication interne - Entraide Nationale</p>
         </div>
-       
+
         <div className="p-3 bg-gray-50">
-          {/* Header */}
-        <div className="p-3">
+          <div className="p-3">
             <h2 className="text-2xl font-bold text-blue-900">Ajouter un nouveau centre</h2>
-           
           </div>
 
           <form onSubmit={handleSubmit}>
@@ -622,15 +542,6 @@ const utilisationOptions = [
                   required
                 />
                 <FormField
-                  label="Gestion"
-                  name="gestion"
-                  type="select"
-                  value={formData.gestion}
-                  onChange={handleInputChange}
-                  options={gestionOptions}
-                  required
-                />
-                <FormField
                   label="Autorisé"
                   name="autorise"
                   type="select"
@@ -638,6 +549,14 @@ const utilisationOptions = [
                   onChange={handleInputChange}
                   options={autorisationOptions}
                   required
+                />
+                <FormField
+                  label="Capacité d'accueil"
+                  name="capaciteAccueil"
+                  type="number"
+                  value={formData.capaciteAccueil}
+                  onChange={handleInputChange}
+                  placeholder="Nombre de personnes"
                 />
               </div>
               <FormField
@@ -649,18 +568,10 @@ const utilisationOptions = [
                 placeholder="Adresse complète du centre"
                 className="mt-4"
               />
-              <FormField
-                label="Capacité d'accueil"
-                name="capaciteAccueil"
-                type="number"
-                value={formData.capaciteAccueil}
-                onChange={handleInputChange}
-                placeholder="Nombre de personnes"
-              />
             </FormSection>
 
             {/* Section Construction & Dimensions */}
-            <FormSection icon={FaBuilding} title="Construction & Dimensions" bgColor="bg-green-50">
+            <FormSection icon={FaBuilding} title="Construction & Dimensions" bgColor="bg-blue-50">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <FormField
                   label="État de construction"
@@ -711,11 +622,6 @@ const utilisationOptions = [
                   placeholder="Superficie en m²"
                 />
               </div>
-
-
-
-
-
               <FormField
                 label="Utilisation"
                 name="utilisation"
@@ -728,7 +634,7 @@ const utilisationOptions = [
             </FormSection>
 
             {/* Section Juridique & Financière */}
-            <FormSection icon={FaGavel} title="Situation Juridique & Financière" bgColor="bg-purple-50">
+            <FormSection icon={FaGavel} title="Situation Juridique & Financière" bgColor="bg-blue-50">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <FormField
                   label="Propriété"
@@ -797,43 +703,174 @@ const utilisationOptions = [
                 />
               )}
             </FormSection>
-             <FormSection icon={FaProjectDiagram} title="Programmes et Préstations" bgColor="bg-teal-50">
-             
-              <div>
-        <label className="block font-medium mb-2">Programmes</label>
-        <Select
-          isMulti
-          options={programmeOptions}
-          value={programmeOptions.filter((opt) =>
-            formData.programmeIds.includes(opt.value)
-          )}
-          onChange={handleProgrammeChange}
-          placeholder="Sélectionner un ou plusieurs programmes..."
-        />
-      </div>
 
-      {/* Prestations */}
-      <div>
-        <label className="block font-medium mb-2">Prestations</label>
-        <Select
-          isMulti
-          isDisabled={!formData.programmeIds.length}
-          options={prestationOptions}
-          value={prestationOptions.filter((opt) =>
-            formData.prestationIds.includes(opt.value)
-          )}
-          onChange={handlePrestationChange}
-          placeholder={
-            formData.programmeIds.length
-              ? "Sélectionner les prestations..."
-              : "Choisir d’abord un programme"
-          }
-        />
-      </div>
+            {/* Section Programmes et Prestations - Nouvelle structure */}
+            <FormSection icon={FaProjectDiagram} title="Programmes et Prestations" bgColor="bg-blue-50">
+              <div className="space-y-6">
+                {localProgrammes.map((lp, index) => (
+                  <div key={lp.tempId} className="border border-gray-300 rounded-lg p-4 bg-white">
+                    <div className="flex justify-between items-center mb-4">
+                      <h4 className="font-semibold text-gray-700">Programme #{index + 1}</h4>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveProgramme(lp.tempId)}
+                        className="text-red-500 hover:text-red-700 transition-colors"
+                      >
+                        <FaTrash />
+                      </button>
+                    </div>
 
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {/* Sélection du programme */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Programme <span className="text-red-500">*</span>
+                        </label>
+                        <Select
+                          options={programmeOptions}
+                          value={programmeOptions.find((opt) => opt.value === lp.programme) || null}
+                          onChange={(selected) =>
+                            handleProgrammeChange(lp.tempId, "programme", selected?.value || null)
+                          }
+                          placeholder="Sélectionner un programme..."
+                          isClearable
+                        />
+                      </div>
+
+                      {/* Gestion */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Gestion</label>
+                        <select
+                          value={lp.gestion}
+                          onChange={(e) => handleProgrammeChange(lp.tempId, "gestion", e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                          <option value="">Sélectionner...</option>
+                          {gestionOptions.map((opt) => (
+                            <option key={opt.value} value={opt.value}>
+                              {opt.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                       {(lp.gestion === "Cogestion" || lp.gestion === "Gestion déléguée") && (
+  <div className="mt-3">
+    <label className="block text-sm font-medium text-gray-700 mb-2">
+      Préciser l’organisme partenaire
+    </label>
+    <input
+      type="text"
+      value={lp.gestionSiAutre || ""}
+      onChange={(e) =>
+        handleProgrammeChange(lp.tempId, "gestionSiAutre", e.target.value)
+      }
+      placeholder="Ex : Association X, Commune Y..."
+      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+    />
+  </div>
+)}
+                      {/* Prestations */}
+                      <div className="md:col-span-2">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Prestations</label>
+                        <Select
+                          isMulti
+                          isDisabled={!lp.programme}
+                          options={getPrestationOptionsForProgramme(lp.programme)}
+                          value={getPrestationOptionsForProgramme(lp.programme).filter((opt) =>
+                            lp.prestations.includes(opt.value)
+                          )}
+                          onChange={(selected) =>
+                            handleProgrammeChange(
+                              lp.tempId,
+                              "prestations",
+                              selected ? selected.map((s) => s.value) : []
+                            )
+                          }
+                          placeholder={lp.programme ? "Sélectionner les prestations..." : "Choisir d'abord un programme"}
+                        />
+                      </div>
+
+                      {/* Personnel */}
+                      <div className="md:col-span-2">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Personnel</label>
+                        <Select
+                          isMulti
+                          options={personnelOptions}
+                          value={personnelOptions.filter((opt) => lp.personnelIds.includes(opt.value))}
+                          onChange={(selected) =>
+                            handleProgrammeChange(
+                              lp.tempId,
+                              "personnelIds",
+                              selected ? selected.map((s) => s.value) : []
+                            )
+                          }
+                          placeholder="Sélectionner le personnel..."
+                        />
+                      </div>
+
+                      {/* Responsable */}
+                      <div className="md:col-span-2">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Responsable</label>
+                        <Select
+  options={personnelOptions}
+  value={personnelOptions.find((o) => o.value === lp.responsableId) || null}
+  onChange={(option) => handleResponsableChange(lp.tempId, option)}
+  placeholder="Sélectionner un responsable"
+/>
+                      </div>
+
+                      {/* Population cible */}
+                    
+<div className="md:col-span-2">
+  <label className="block text-sm font-medium text-gray-700 mb-2">
+    Population cible
+  </label>
+
+  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+    {populationOptions.map((opt) => (
+      <label key={opt} className="flex items-center space-x-2">
+        <input
+          type="checkbox"
+          className="h-4 w-4 text-blue-600 border-gray-300 rounded"
+          checked={lp.populationCible.includes(opt)}
+          onChange={(e) => {
+            let updated = [...lp.populationCible];
+
+            if (e.target.checked) {
+              updated.push(opt);
+            } else {
+              updated = updated.filter((item) => item !== opt);
+            }
+
+            handleProgrammeChange(lp.tempId, "populationCible", updated);
+          }}
+        />
+        <span className="text-gray-700 text-sm">{opt}</span>
+      </label>
+    ))}
+  </div>
+</div>
+
+
+
+
+                    </div>
+                  </div>
+                ))}
+
+                <button
+                  type="button"
+                  onClick={handleAddProgramme}
+                  className="w-full py-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-blue-500 hover:text-blue-500 transition-colors flex items-center justify-center gap-2"
+                >
+                  <FaPlus />
+                  Ajouter un programme
+                </button>
+              </div>
             </FormSection>
+
             {/* Section Documents */}
-            <FormSection icon={FaUpload} title="Documents & Fichiers" bgColor="bg-teal-50">
+            <FormSection icon={FaUpload} title="Documents & Fichiers" bgColor="bg-blue-50">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <FormField
                   label="Certificat"
@@ -863,7 +900,7 @@ const utilisationOptions = [
             </FormSection>
 
             {/* Section Équipements */}
-            <FormSection icon={FaTools} title="Équipements & Commodités" bgColor="bg-yellow-50">
+            <FormSection icon={FaTools} title="Équipements & Commodités" bgColor="bg-blue-50">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <FormField
                   label="Eau"
@@ -895,66 +932,46 @@ const utilisationOptions = [
                 />
               </div>
             </FormSection>
-             
+
             {/* Section Composants et Étages */}
-            <FormSection icon={FaThList} title="Composants & Étages" bgColor="bg-indigo-50">
+            <FormSection icon={FaThList} title="Composants & Étages" bgColor="bg-blue-50">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-               <div className="mb-4">
-  <label className="block font-medium mb-1">Composants du local</label>
-  <input
-    type="text"
-    placeholder="Ex: Chambre 1, Cuisine, Salon"
-    value={composantInput}
-    onChange={(e) => setComposantInput(e.target.value)}
-    className="border rounded p-2 w-full"
-  />
-</div>
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Composants du local
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Ex: Chambre 1, Cuisine, Salon"
+                    value={composantInput}
+                    onChange={(e) => setComposantInput(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Séparez les composants par des virgules
+                  </p>
+                </div>
 
-<div className="mb-4">
-  <label className="block font-medium mb-1">Étages utilisés</label>
-  <input
-    type="text"
-    placeholder="Ex: Rez-de-chaussée, 1er étage"
-    value={etagesInput}
-    onChange={(e) => setEtagesInput(e.target.value)}
-    className="border rounded p-2 w-full"
-  />
-</div>
-
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Étages utilisés
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Ex: Rez-de-chaussée, 1er étage"
+                    value={etagesInput}
+                    onChange={(e) => setEtagesInput(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Séparez les étages par des virgules
+                  </p>
+                </div>
               </div>
             </FormSection>
 
-            {/* Section Personnel */}
-           <div className="mb-4">
-  <label className="block font-medium mb-2">Personnel</label>
-  <Select
-    isMulti
-    options={personnelOptions}
-    value={personnelOptions.filter((opt) =>
-      personnelIds.includes(opt.value)
-    )}
-    onChange={handlePersonnelChange}
-    placeholder="Sélectionner une ou plusieurs personnes..."
-  />
-</div>
-
-  <div className="mb-4">
-  <label className="block font-medium mb-2">Responsable de centre</label>
-  <Select
-    options={personnelOptions}
-    value={
-      personnelOptions.find((opt) => opt.value === responsableId) || null
-    }
-    onChange={handleResponsableChange}
-    placeholder="Sélectionner une personne..."
-    isClearable
-  />
-</div>
-
-
-
             {/* Section Observations */}
-            <FormSection icon={FaFileAlt} title="Observations" bgColor="bg-gray-50">
+            <FormSection icon={FaFileAlt} title="Observations" bgColor="bg-blue-50">
               <FormField
                 label="Observations"
                 name="observation"

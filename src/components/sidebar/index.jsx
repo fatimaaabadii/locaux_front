@@ -81,7 +81,7 @@ const Sidebar = () => {
                   <li><Link href="/gestion-prestations" className="block px-2 py-1 text-sm text-white rounded">Gestion des prestations</Link></li>
                   <li><Link href="/locaux" className="block px-2 py-1 text-sm text-white rounded">Liste des locaux</Link></li>
                   <li><Link href="/contrats" className="block px-2 py-1 text-sm text-white rounded">Nouveau local</Link></li>
-                  <li><Link href="/gestion_activite_sociale" className="block px-2 py-1 text-sm text-white rounded">Gestion d'activités sociales</Link></li>
+                  
                 </ul>
               )}
             </li>
@@ -123,6 +123,7 @@ const Sidebar = () => {
                   <li><Link href="/liste_partenariats" className="block px-2 py-1 text-sm text-white rounded">Liste des partenariats</Link></li>
                   <li><Link href="/nouveau-partenariat" className="block px-2 py-1 text-sm text-white rounded">Nouveau partenariat</Link></li>
                   <li><Link href="/suivi-partenariat" className="block px-2 py-1 text-sm text-white rounded">Suivi des partenariats</Link></li>
+                   <li><Link href="/Statistiques_Partenariat" className="block px-2 py-1 text-sm text-white rounded">Statistiques</Link></li>
                 </ul>
               )}
             </li>

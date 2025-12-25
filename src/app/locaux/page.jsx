@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
-
+import React, { useState, useMemo } from "react";
+import Select from "react-select";
 import { Plus, Edit, Trash2, Search } from "lucide-react";
 import {
   FaEye,
@@ -17,6 +17,7 @@ import {
   FaTimes,
   FaCheckCircle,
   FaTimesCircle, 
+  FaTrash ,
 } from "react-icons/fa";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getCookie, deleteCookie } from "cookies-next";
@@ -24,10 +25,11 @@ import {
   api,
   getCurrentUser,
   getLocaux,
+  getProgrammes, getPrestations
 } from "/src/api";
 
 
- 
+
 const Modal = ({ isOpen, onClose, children }) => {
   if (!isOpen) return null;
 
@@ -165,6 +167,16 @@ const { data: userData } = useQuery({
   });
 
   
+
+
+
+
+
+
+
+
+
+  
 const { data: personnes = [] } = useQuery({
   queryKey: ["personnesProvince", userData?.province?.symbols],
   queryFn: async () => {
@@ -193,7 +205,10 @@ const { data: personnes = [] } = useQuery({
   enabled: !!userData?.province?.symbols,
 });
 
- 
+   const { data: prestations = [] } = useQuery({
+    queryKey: ["prestations"],
+    queryFn: getPrestations(),
+  });
 
   const { data: locaux = [], isLoading } = useQuery({
     queryKey: ["locaux"],
@@ -205,6 +220,7 @@ console.log(locaux);
 
   // Effect pour initialiser le formulaire d'édition
   React.useEffect(() => {
+    console.log(selectedCentre);
     if (selectedCentre && showEditModal) {
       setEditFormData({
         nomLocalFrancais: selectedCentre.nomLocalFrancais || "",
@@ -249,10 +265,22 @@ console.log(locaux);
         personnelIds: selectedCentre?.personnelIds || [],
         certificat_propriete: selectedCentre.certificat_propriete || null,
         mappe_cadastrale: selectedCentre.mappe_cadastrale || null,
-      });
-    }
-  }, [selectedCentre, showEditModal]);
-
+        localProgrammes: selectedCentre.localProgrammes?.map((lp) => ({
+        id: lp.id,
+        programme: lp.programme
+          ? { programmeId: lp.programme.programmeId, nomProgramme: lp.programme.nomProgramme }
+          : { programmeId: null, nomProgramme: "" },
+        prestations: lp.prestations || [],
+        personnelIds: lp.personnelIds || [],
+        responsableId: lp.responsableId || null,
+        responsableNom: lp.responsableNom || null,
+        gestion: lp.gestion || "",
+        gestionSiAutre: lp.gestionSiAutre || "",
+        populationCible: lp.populationCible || [],
+      })) || [],
+    });
+  }
+}, [selectedCentre, showEditModal]);
   const handleEditChange = (e) => {
     const { name, value, type, checked } = e.target;
     setEditFormData(prev => ({
@@ -302,10 +330,22 @@ console.log(locaux);
       setSelectedCentre(null);
     },
   });
-
+ console.log("editformdata",editFormData);
   const handleDelete = () => {
     deleteMutation.mutate(selectedCentre.id);
   };
+
+
+const personnelOptions = useMemo(() => { if (!personnes || !Array.isArray(personnes)) return []; 
+  return personnes.map((p) => ({ value: p.id, label: p.nom_prenom_fr, })); }, [personnes]); 
+
+
+
+
+
+
+
+
 
   const itemsPerPage = 10;
 
@@ -319,6 +359,46 @@ console.log(locaux);
     currentPage * itemsPerPage
   );
 
+  const { data: programmes = [] } = useQuery({
+    queryKey: ["programmes"],
+    queryFn: getProgrammes(),
+  });
+const programmeOptions = programmes.map((p) => ({
+    value: p.programmeId,
+    label: p.nomProgramme,
+  }));
+const gestionOptions = [
+    
+    { value: "Entraide Nationale", label: "Entraide Nationale" },
+    { value: "Cogestion", label: "Cogestion" },
+    { value: "Gestion déléguée", label: "Gestion déléguée" },
+  ];
+
+  const getPrestationOptionsForProgramme = (programmeId) => {
+    if (!programmeId) return [];
+    return prestations
+      .filter((p) => {
+        // Vérifier si programme est un tableau et contient le programmeId
+        if (Array.isArray(p.programme) && p.programme.length > 0) {
+          return p.programme[0].programmeId === programmeId;
+        }
+        // Fallback si programme est un objet direct
+        return p.programme?.programmeId === programmeId;
+      })
+      .map((p) => ({
+        value: p.prestationId,
+        label: p.nomPrestation,
+      }));
+  };
+
+
+  const populationOptions = [
+  "Famille",
+  "Femmes en situation difficile",
+  "Enfants en situation difficile",
+  "Personnes âgées",
+  "Personnes en situation de handicap",
+];
   return (
     <div className="ml-64 bg-gray-50 min-h-screen">
       <div className="bg-gradient-to-r from-[#F0F2F5] to-[#E5E8EB] text-[#4A4F55] p-6">
@@ -449,7 +529,7 @@ console.log(locaux);
                     { label: "Province", value: selectedCentre.province?.province  },
                     { label: "Téléphone", value: selectedCentre.telephone },
                     { label: "Fax", value: selectedCentre.fax },
-                    { label: "Gestion", value: selectedCentre.gestion },
+                   
                     { label: "Autorisé", value: selectedCentre.autorise },
                     { label: "Capacité d'accueil", value: selectedCentre.capaciteAccueil + " personnes" },
                   ]}
@@ -457,7 +537,7 @@ console.log(locaux);
               </ModalSection>
 
               {/* Section Construction & Dimensions */}
-              <ModalSection icon={FaBuilding} title="Construction & Dimensions" bgColor="bg-green-50">
+              <ModalSection icon={FaBuilding} title="Construction & Dimensions" bgColor="bg-blue-50">
                 <InfoGrid
                   data={[
                     { label: "État de construction", value: selectedCentre.etat_construction },
@@ -472,7 +552,7 @@ console.log(locaux);
               </ModalSection>
 
               {/* Section Juridique & Financière */}
-              <ModalSection icon={FaGavel} title="Situation Juridique & Financière" bgColor="bg-purple-50">
+              <ModalSection icon={FaGavel} title="Situation Juridique & Financière" bgColor="bg-blue-50">
                 <InfoGrid
                   data={[
                     { label: "Propriété", value: selectedCentre.propriete },
@@ -490,7 +570,7 @@ console.log(locaux);
               </ModalSection>
 
               {/* Section Équipements */}
-              <ModalSection icon={FaTools} title="Équipements & Commodités" bgColor="bg-yellow-50">
+              <ModalSection icon={FaTools} title="Équipements & Commodités" bgColor="bg-blue-50">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                   <StatusBadge status={selectedCentre.eau} label="Eau" />
                   <StatusBadge status={selectedCentre.electricite} label="Électricité" />
@@ -500,7 +580,7 @@ console.log(locaux);
               </ModalSection>
 
               {/* Section Composants et Étages */}
-              <ModalSection icon={FaThList} title="Composants & Étages" bgColor="bg-indigo-50">
+              <ModalSection icon={FaThList} title="Composants & Étages" bgColor="bg-blue-50">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <ListSection
   title="Composants du local"
@@ -516,83 +596,139 @@ console.log(locaux);
                 </div>
               </ModalSection>
 
- {selectedCentre.programme?.length > 0 && (
-                <ModalSection icon={FaCogs} title="Programmes" bgColor="bg-pink-50">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {selectedCentre.programme.map((programme) => (
-                      <ProgrammeCard key={programme.programmeId} programme={programme} />
-                    ))}
-                  </div>
-                </ModalSection>
-              )}
+ 
 
-              {/* Section Prestations */}
-            {Array.isArray(selectedCentre.prestation) && selectedCentre.prestation.length > 0 ? (
-  <ModalSection icon={FaTasks} title="Prestations" bgColor="bg-teal-50">
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      {selectedCentre.prestation.map((prestation, idx) => (
-        <PrestationCard key={prestation.prestationId || idx} prestation={prestation} />
+
+
+
+{/* ========================== PROGRAMMES + DETAILS ========================== */}
+
+
+  <ModalSection icon={FaCogs} title="Programmes du Centre" bgColor="bg-blue-50">
+
+    <div className="space-y-6">
+
+      {selectedCentre.localProgrammes?.map((lp) => (
+        <div
+          key={lp.id}
+          className="bg-white p-5 rounded-xl shadow-md border border-gray-200 hover:shadow-lg transition-all"
+        >
+
+          {/* HEADER : Nom programme */}
+          {lp.programme && (
+            <div className="pb-3 border-b border-gray-100 mb-3">
+              <h3 className="text-xl font-bold text-gray-800">
+                {lp.programme.nomProgramme}
+              </h3>
+            </div>
+          )}
+
+          {/* Gestion */}
+         
+          <div className="flex items-center mb-2">
+            <span className="text-gray-500 text-sm w-40">Gestion :</span>
+            <span className="px-2 py-1 bg-indigo-100 text-indigo-700 text-xs rounded-full">
+              {lp.gestion || "Non défini"}
+            </span>
+          </div>
+           <div className="flex items-center mb-2">
+            <span className="text-gray-500 text-sm w-40">L’organisme partenaire :</span>
+            <span className="px-2 py-1 bg-indigo-100 text-indigo-700 text-xs rounded-full">
+              {lp.gestionSiAutre || "Aucun partenaire"}
+            </span>
+          </div>
+          {/* Responsable */}
+          <div className="flex items-center mb-2">
+            <span className="text-gray-500 text-sm w-40">Responsable :</span>
+            <span className="font-semibold text-gray-800">
+              {lp.responsableNom || "Aucun"}
+            </span>
+          </div>
+
+          {/* Population cible */}
+          <div className="flex mb-3">
+            <span className="text-gray-500 text-sm w-40">Population cible :</span>
+
+            {Array.isArray(lp.populationCible) ? (
+              <div className="flex flex-wrap gap-2">
+                {lp.populationCible.map((pc, index) => (
+                  <span
+                    key={index}
+                    className="px-2 py-1 bg-pink-100 text-pink-700 rounded-full text-xs"
+                  >
+                    {pc}
+                  </span>
+                ))}
+              </div>
+            ) : (
+              <span className="text-gray-700 text-sm">Non définie</span>
+            )}
+          </div>
+
+          {/* Personnel */}
+          <div className="flex mb-3">
+            <span className="text-gray-500 text-sm w-40">Personnel assigné :</span>
+
+            {lp.personnelIds?.length > 0 ? (
+              <div className="flex flex-wrap gap-2">
+                {lp.personnelIds.map((id) => {
+                  const pers = personnes.find((p) => p.id === id);
+                  return (
+                    <span
+                      key={id}
+                      className="px-2 py-1 bg-green-100 text-green-700 rounded-md text-xs"
+                    >
+                      {pers ? pers.nom_prenom_fr : `ID ${id}`}
+                    </span>
+                  );
+                })}
+              </div>
+            ) : (
+              <span className="text-gray-500 italic text-sm">
+                Aucun personnel assigné
+              </span>
+            )}
+          </div>
+
+          {/* Prestations */}
+          <div className="mt-4 pt-3 border-t border-gray-100">
+            <h4 className="text-sm font-semibold text-gray-700 mb-2">Prestations :</h4>
+
+            {Array.isArray(lp.prestations) && lp.prestations.length > 0 ? (
+              <ul className="list-disc ml-6 text-sm text-gray-800 space-y-1">
+                {lp.prestations.map((prestation, idx) => (
+                  <li key={idx} className="font-medium">
+                    {prestation.nomPrestation}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-sm text-gray-500 italic">
+                Aucune prestation associée
+              </p>
+            )}
+          </div>
+
+        </div>
       ))}
+
     </div>
+
   </ModalSection>
-) : (
-    <ModalSection icon={FaTasks} title="Prestations" bgColor="bg-teal-50">
-  <p className="text-gray-500 italic">Aucune prestation associée</p>
-  </ModalSection>
-)}
-
-
-            
-             
-
-              {/* Section Personnel */}
-             <ModalSection icon={FaUsers} title="Personnel" bgColor="bg-orange-50">
-  <div className="bg-white p-3 rounded-md shadow-sm border border-gray-200">
 
 
 
-{selectedCentre.responsable_nom ? (
-      <div className="mb-2">
-        <p className="text-sm font-medium text-gray-700">
-          Responsable du centre :{" "}
-          <span className="font-semibold text-gray-900">
-            {selectedCentre.responsable_nom}
-          </span>
-        </p>
-      </div>
-    ) : (
-      <p className="text-sm text-gray-500 italic mb-2">
-        Aucun responsable assigné
-      </p>
-    )}
 
 
 
-    {selectedCentre.personnelIds?.length > 0 ? (
-      <>
-        <p className="text-sm text-gray-600 mb-2">
-          Personnel assigné:{" "}
-          {selectedCentre.personnelIds
-            .map((id) => {
-              const person = personnes.find((p) => p.id === id);
-              return person ? person.nom_prenom_fr : `ID ${id}`;
-            })
-            .join(", ")}
-        </p>
-        <p className="text-xs text-gray-500">
-          Total: {selectedCentre.personnelIds.length} personne(s)
-        </p>
-      </>
-    ) : (
-      <p className="text-sm text-gray-500 italic">Aucun personnel assigné</p>
-    )}
-  </div>
-</ModalSection>
+
+
+
 
 
               {/* Section Observations */}
               {selectedCentre.observation && (
-                <ModalSection icon={FaFileAlt} title="Observations" bgColor="bg-gray-50">
+                <ModalSection icon={FaFileAlt} title="Observations" bgColor="bg-blue-50">
                   <div className="bg-white p-4 rounded-md shadow-sm border border-gray-200">
                     <p className="text-sm text-gray-700 leading-relaxed">
                       {selectedCentre.observation}
@@ -602,7 +738,7 @@ console.log(locaux);
               )}
 
               {/* Section Documents */}
-             <ModalSection icon={FaFileAlt} title="Documents" bgColor="bg-red-50">
+             <ModalSection icon={FaFileAlt} title="Documents" bgColor="bg-blue-50">
   <InfoGrid
     data={[
       {
@@ -762,20 +898,7 @@ console.log(locaux);
                       className="w-full border border-gray-300 p-2 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
                   </div>
-                  <div>
-                    <label className="block mb-1 font-medium text-sm">Gestion</label>
-                    <select
-                      name="gestion"
-                      value={editFormData.gestion}
-                      onChange={handleEditChange}
-                      className="w-full border border-gray-300 p-2 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    >
-                      <option value="Entraide Nationale">Entraide Nationale</option>
-                      <option value="Association">Association</option>
-                      <option value="Autre">Autre</option>
-    
-                     </select>
-                  </div>
+                
                   <div>
                     <label className="block mb-1 font-medium text-sm">Autorisé</label>
                     <select
@@ -805,8 +928,8 @@ console.log(locaux);
               </div>
 
               {/* Section Construction & Dimensions */}
-              <div className="bg-green-50 rounded-lg p-4">
-                <h4 className="font-bold text-lg mb-4 text-green-800 flex items-center">
+              <div className="bg-blue-50 rounded-lg p-4">
+                <h4 className="font-bold text-lg mb-4 text-blue-800 flex items-center">
                   <FaBuilding className="mr-2" />
                   Construction & Dimensions
                 </h4>
@@ -894,8 +1017,8 @@ console.log(locaux);
               </div>
 
               {/* Section Juridique & Financière */}
-              <div className="bg-purple-50 rounded-lg p-4">
-                <h4 className="font-bold text-lg mb-4 text-purple-800 flex items-center">
+              <div className="bg-blue-50 rounded-lg p-4">
+                <h4 className="font-bold text-lg mb-4 text-blue-800 flex items-center">
                   <FaGavel className="mr-2" />
                   Situation Juridique & Financière
                 </h4>
@@ -991,8 +1114,8 @@ console.log(locaux);
               </div>
 
               {/* Section Équipements */}
-              <div className="bg-yellow-50 rounded-lg p-4">
-                <h4 className="font-bold text-lg mb-4 text-yellow-800 flex items-center">
+              <div className="bg-blue-50 rounded-lg p-4">
+                <h4 className="font-bold text-lg mb-4 text-blue-800 flex items-center">
                   <FaTools className="mr-2" />
                   Équipements & Commodités
                 </h4>
@@ -1045,8 +1168,8 @@ console.log(locaux);
               </div>
 
               {/* Section Composants et Étages */}
-              <div className="bg-indigo-50 rounded-lg p-4">
-                <h4 className="font-bold text-lg mb-4 text-indigo-800 flex items-center">
+              <div className="bg-blue-50 rounded-lg p-4">
+                <h4 className="font-bold text-lg mb-4 text-blue-800 flex items-center">
                   <FaThList className="mr-2" />
                   Composants & Étages
                 </h4>
@@ -1076,9 +1199,216 @@ console.log(locaux);
                 </div>
               </div>
 
+
+
+
+
+
+
+< div className="bg-blue-50 rounded-lg p-4">
+<h4 className="font-bold text-lg mb-4 text-blue-800 flex items-center">
+                  <FaFileAlt className="mr-2" />
+                  Programmes et Préstations
+                </h4>
+  <div className="space-y-6">
+    {editFormData.localProgrammes?.map((lp, index) => (
+      <div key={lp.id || index} className="border border-gray-300 rounded-lg p-4 bg-white">
+        <div className="flex justify-between items-center mb-4">
+          <h4 className="font-semibold text-gray-700">Programme #{index + 1}</h4>
+          <button
+            type="button"
+            onClick={() => {
+              const newProgrammes = editFormData.localProgrammes.filter((_, i) => i !== index);
+              setEditFormData(prev => ({ ...prev, localProgrammes: newProgrammes }));
+            }}
+            className="text-red-500 hover:text-red-700 transition-colors"
+          >
+            <FaTrash />
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Sélection du programme */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Programme <span className="text-red-500">*</span>
+            </label>
+            <Select
+              options={programmeOptions}
+              value={programmeOptions.find((opt) => opt.value === lp.programme?.programmeId) || null}
+              onChange={(selected) => {
+                const newProgrammes = [...editFormData.localProgrammes];
+                newProgrammes[index].programme.programmeId = selected?.value || null;
+                newProgrammes[index].programme.nomProgramme = selected?.label || "";
+                newProgrammes[index].prestations = [];
+                setEditFormData(prev => ({ ...prev, localProgrammes: newProgrammes }));
+              }}
+              placeholder="Sélectionner un programme..."
+              isClearable
+            />
+          </div>
+
+          {/* Gestion */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Gestion</label>
+            <select
+              value={lp.gestion}
+              onChange={(e) => {
+                const newProgrammes = [...editFormData.localProgrammes];
+                newProgrammes[index].gestion = e.target.value;
+                if (e.target.value !== "Cogestion" && e.target.value !== "Gestion déléguée") {
+                  newProgrammes[index].gestionSiAutre = "";
+                }
+                setEditFormData(prev => ({ ...prev, localProgrammes: newProgrammes }));
+              }}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">Sélectionner...</option>
+              {gestionOptions.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Organisme partenaire si cogestion */}
+          {(lp.gestion === "Cogestion" || lp.gestion === "Gestion déléguée") && (
+            <div className="md:col-span-2 mt-3">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Préciser l’organisme partenaire
+              </label>
+              <input
+                type="text"
+                value={lp.gestionSiAutre || ""}
+                onChange={(e) => {
+                  const newProgrammes = [...editFormData.localProgrammes];
+                  newProgrammes[index].gestionSiAutre = e.target.value;
+                  setEditFormData(prev => ({ ...prev, localProgrammes: newProgrammes }));
+                }}
+                placeholder="Ex : Association X, Commune Y..."
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+          )}
+
+          {/* Prestations */}
+          <div className="md:col-span-2">
+            <label className="block text-sm font-medium text-gray-700 mb-2">Prestations</label>
+            <Select
+              isMulti
+              isDisabled={!lp.programme?.programmeId}
+              options={getPrestationOptionsForProgramme(lp.programme?.programmeId)}
+              value={getPrestationOptionsForProgramme(lp.programme?.programmeId).filter((opt) =>
+                lp.prestations?.includes(opt.value)
+              )}
+              onChange={(selected) => {
+                const newProgrammes = [...editFormData.localProgrammes];
+                newProgrammes[index].prestations = selected ? selected.map(s => s.value) : [];
+                setEditFormData(prev => ({ ...prev, localProgrammes: newProgrammes }));
+              }}
+              placeholder={lp.programme?.programmeId ? "Sélectionner les prestations..." : "Choisir d'abord un programme"}
+            />
+          </div>
+
+          {/* Personnel */}
+          <div className="md:col-span-2">
+            <label className="block text-sm font-medium text-gray-700 mb-2">Personnel</label>
+            <Select
+              isMulti
+              options={personnelOptions}
+              value={personnelOptions.filter((opt) => lp.personnelIds?.includes(opt.value))}
+              onChange={(selected) => {
+                const newProgrammes = [...editFormData.localProgrammes];
+                newProgrammes[index].personnelIds = selected ? selected.map(s => s.value) : [];
+                setEditFormData(prev => ({ ...prev, localProgrammes: newProgrammes }));
+              }}
+              placeholder="Sélectionner le personnel..."
+            />
+          </div>
+
+          {/* Responsable */}
+          <div className="md:col-span-2">
+            <label className="block text-sm font-medium text-gray-700 mb-2">Responsable</label>
+            <Select
+              options={personnelOptions}
+              value={personnelOptions.find((o) => o.value === lp.responsableId) || null}
+              onChange={(option) => {
+                const newProgrammes = [...editFormData.localProgrammes];
+                newProgrammes[index].responsableId = option ? option.value : null;
+                newProgrammes[index].responsableNom = option ? option.label : null;
+                setEditFormData(prev => ({ ...prev, localProgrammes: newProgrammes }));
+              }}
+              placeholder="Sélectionner un responsable"
+            />
+          </div>
+
+          {/* Population cible */}
+          <div className="md:col-span-2">
+            <label className="block text-sm font-medium text-gray-700 mb-2">Population cible</label>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+              {populationOptions.map((opt) => (
+                <label key={opt} className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4 text-blue-600 border-gray-300 rounded"
+                    checked={lp.populationCible?.includes(opt)}
+                    onChange={(e) => {
+                      const updated = lp.populationCible ? [...lp.populationCible] : [];
+                      if (e.target.checked) updated.push(opt);
+                      else updated.splice(updated.indexOf(opt), 1);
+                      const newProgrammes = [...editFormData.localProgrammes];
+                      newProgrammes[index].populationCible = updated;
+                      setEditFormData(prev => ({ ...prev, localProgrammes: newProgrammes }));
+                    }}
+                  />
+                  <span className="text-gray-700 text-sm">{opt}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    ))}
+
+    <button
+      type="button"
+      onClick={() => {
+        const newProgrammes = editFormData.localProgrammes || [];
+        newProgrammes.push({
+          id: Date.now(),
+          programme: { programmeId: null, nomProgramme: "" },
+          prestations: [],
+          personnelIds: [],
+          responsableId: null,
+          responsableNom: null,
+          gestion: "",
+          gestionSiAutre: "",
+          populationCible: [],
+        });
+        setEditFormData(prev => ({ ...prev, localProgrammes: newProgrammes }));
+      }}
+      className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+    >
+      Ajouter un programme
+    </button>
+  </div>
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
               {/* Section Observations */}
-              <div className="bg-gray-50 rounded-lg p-4">
-                <h4 className="font-bold text-lg mb-4 text-gray-800 flex items-center">
+              <div className="bg-blue-50 rounded-lg p-4">
+                <h4 className="font-bold text-lg mb-4 text-blue-800 flex items-center">
                   <FaFileAlt className="mr-2" />
                   Observations
                 </h4>
@@ -1095,37 +1425,7 @@ console.log(locaux);
                 </div>
               </div>
 
-              {/* Section Documents */}
-           {/*   <div className="bg-red-50 rounded-lg p-4">
-                <h4 className="font-bold text-lg mb-4 text-red-800 flex items-center">
-                  <FaFileAlt className="mr-2" />
-                  Documents
-                </h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="flex items-center space-x-3">
-                    <input
-                      type="checkbox"
-                      name="certificat_propriete"
-                      checked={editFormData.certificat_propriete}
-                      onChange={handleEditChange}
-                      id="edit-certificat"
-                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                    />
-                    <label htmlFor="edit-certificat" className="text-sm font-medium">Certificat de propriété</label>
-                  </div>
-                  <div className="flex items-center space-x-3">
-                    <input
-                      type="checkbox"
-                      name="mappe_cadastrale"
-                      checked={editFormData.mappe_cadastrale}
-                      onChange={handleEditChange}
-                      id="edit-mappe"
-                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                    />
-                    <label htmlFor="edit-mappe" className="text-sm font-medium">Mappe cadastrale</label>
-                  </div>
-                </div>
-              </div>*/}
+            
 
               {/* Boutons d'action */}
               <div className="flex justify-end space-x-4 pt-6 border-t border-gray-200">
