@@ -567,3 +567,690 @@ export function downloadPieceJointePartenariat(partenariatId) {
         return true; // ou retourne des infos supplémentaires si nécessaire
     };
 }
+
+    // ============================================================================
+// FORMATION ENDPOINTS
+// ============================================================================
+
+    /**
+     * Get all formations
+     */
+    export async function getFormations() {
+        try {
+            const token = getCookie("token");
+            const response = await api.get("/api/formations", {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+            console.log(response.data);
+            return response.data;
+        } catch (error) {
+            console.log(error);
+            throw error;
+        }
+    }
+
+    /**
+     * Get formation by ID with attachments
+     */
+    export async function getFormationById(id) {
+        try {
+            const token = getCookie("token");
+            const response = await api.get(`/api/formations/${id}`, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+            return response.data;
+        } catch (error) {
+            console.log(error);
+            throw error;
+        }
+    }
+
+    /**
+     * Search formations by name
+     */
+    export async function searchFormations(nom) {
+        try {
+            const token = getCookie("token");
+            const response = await api.get(`/api/formations/search?nom=${nom}`, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+            return response.data;
+        } catch (error) {
+            console.log(error);
+            throw error;
+        }
+    }
+
+    /**
+     * Get active formations (dateFin >= current date)
+     */
+    export async function getActiveFormations() {
+        try {
+            const token = getCookie("token");
+            const response = await api.get("/api/formations/active", {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+            return response.data;
+        } catch (error) {
+            console.log(error);
+            throw error;
+        }
+    }
+
+    /**
+     * Create formation WITHOUT attachments (simple JSON)
+     */
+    export async function createFormationSimple(formation) {
+        try {
+            const token = getCookie("token");
+            const response = await api.post("/api/formations/simple", formation, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    "Content-Type": "application/json",
+                },
+            });
+            return response.data;
+        } catch (error) {
+            console.log(error);
+            throw error;
+        }
+    }
+
+    /**
+     * Create formation WITH attachments
+     * @param {Object} formation - Formation data object
+     * @param {File[]} files - Array of File objects
+     */
+    export async function createFormationWithAttachments(formation, files) {
+        try {
+            const token = getCookie("token");
+            const formData = new FormData();
+
+            // Add formation data as JSON blob
+            formData.append(
+                "formation",
+                new Blob([JSON.stringify(formation)], {
+                    type: "application/json",
+                })
+            );
+
+            // Add files
+            if (files && files.length > 0) {
+                files.forEach((file) => {
+                    formData.append("files", file);
+                });
+            }
+
+            const response = await api.post("/api/formations", formData, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    "Content-Type": "multipart/form-data",
+                },
+            });
+
+            return response.data;
+        } catch (error) {
+            console.log(error);
+            throw error;
+        }
+    }
+
+    /**
+     * Update formation
+     */
+    export async function updateFormation(id, formation) {
+        try {
+            const token = getCookie("token");
+            const response = await api.put(`/api/formations/${id}`, formation, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    "Content-Type": "application/json",
+                },
+            });
+            return response.data;
+        } catch (error) {
+            console.log(error);
+            throw error;
+        }
+    }
+
+    /**
+     * Delete formation
+     */
+    export async function deleteFormation(id) {
+        try {
+            const token = getCookie("token");
+            await api.delete(`/api/formations/${id}`, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+            return true;
+        } catch (error) {
+            console.log(error);
+            throw error;
+        }
+    }
+
+    /**
+     * Upload additional attachments to existing formation
+     */
+    export async function uploadFormationAttachments(formationId, files) {
+        try {
+            const token = getCookie("token");
+            const formData = new FormData();
+
+            files.forEach((file) => {
+                formData.append("files", file);
+            });
+
+            const response = await api.post(
+                `/api/formations/${formationId}/attachments`,
+                formData,
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                        "Content-Type": "multipart/form-data",
+                    },
+                }
+            );
+
+            return response.data;
+        } catch (error) {
+            console.log(error);
+            throw error;
+        }
+    }
+
+    /**
+     * Get formation attachments
+     */
+    export async function getFormationAttachments(formationId) {
+        try {
+            const token = getCookie("token");
+            const response = await api.get(`/api/formations/${formationId}/attachments`, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+            return response.data;
+        } catch (error) {
+            console.log(error);
+            throw error;
+        }
+    }
+
+// ============================================================================
+// AXE ENDPOINTS
+// ============================================================================
+
+    /**
+     * Get all axes
+     */
+    export async function getAxes() {
+        try {
+            const token = getCookie("token");
+            const response = await api.get("/api/axes", {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+            console.log(response.data);
+            return response.data;
+        } catch (error) {
+            console.log(error);
+            throw error;
+        }
+    }
+
+    /**
+     * Get axe by ID
+     */
+    export async function getAxeById(id) {
+        try {
+            const token = getCookie("token");
+            const response = await api.get(`/api/axes/${id}`, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+            return response.data;
+        } catch (error) {
+            console.log(error);
+            throw error;
+        }
+    }
+
+    /**
+     * Get axe by exact name
+     */
+    export async function getAxeByName(nom) {
+        try {
+            const token = getCookie("token");
+            const response = await api.get(`/api/axes/name/${encodeURIComponent(nom)}`, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+            return response.data;
+        } catch (error) {
+            console.log(error);
+            throw error;
+        }
+    }
+
+    /**
+     * Search axes by name
+     */
+    export async function searchAxes(nom) {
+        try {
+            const token = getCookie("token");
+            const response = await api.get(`/api/axes/search?nom=${nom}`, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+            return response.data;
+        } catch (error) {
+            console.log(error);
+            throw error;
+        }
+    }
+
+    /**
+     * Create axe
+     */
+    export async function createAxe(axe) {
+        try {
+            const token = getCookie("token");
+            const response = await api.post("/api/axes", axe, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    "Content-Type": "application/json",
+                },
+            });
+            return response.data;
+        } catch (error) {
+            console.log(error);
+            throw error;
+        }
+    }
+
+    /**
+     * Update axe
+     */
+    export async function updateAxe(id, axe) {
+        try {
+            const token = getCookie("token");
+            const response = await api.put(`/api/axes/${id}`, axe, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    "Content-Type": "application/json",
+                },
+            });
+            return response.data;
+        } catch (error) {
+            console.log(error);
+            throw error;
+        }
+    }
+
+    /**
+     * Delete axe
+     */
+    export async function deleteAxe(id) {
+        try {
+            const token = getCookie("token");
+            await api.delete(`/api/axes/${id}`, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+            return true;
+        } catch (error) {
+            console.log(error);
+            throw error;
+        }
+    }
+
+// ============================================================================
+// ATTACHMENT ENDPOINTS
+// ============================================================================
+
+    /**
+     * Upload single file to formation
+     */
+    export async function uploadAttachment(formationId, file) {
+        try {
+            const token = getCookie("token");
+            const formData = new FormData();
+            formData.append("file", file);
+
+            const response = await api.post(
+                `/api/attachments/formation/${formationId}`,
+                formData,
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                        "Content-Type": "multipart/form-data",
+                    },
+                }
+            );
+
+            return response.data;
+        } catch (error) {
+            console.log(error);
+            throw error;
+        }
+    }
+
+    /**
+     * Upload multiple files to formation
+     */
+    export async function uploadMultipleAttachments(formationId, files) {
+        try {
+            const token = getCookie("token");
+            const formData = new FormData();
+
+            files.forEach((file) => {
+                formData.append("files", file);
+            });
+
+            const response = await api.post(
+                `/api/attachments/formation/${formationId}/multiple`,
+                formData,
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                        "Content-Type": "multipart/form-data",
+                    },
+                }
+            );
+
+            return response.data;
+        } catch (error) {
+            console.log(error);
+            throw error;
+        }
+    }
+
+    /**
+     * Get attachment by ID
+     */
+    export async function getAttachmentById(id) {
+        try {
+            const token = getCookie("token");
+            const response = await api.get(`/api/attachments/${id}`, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+            return response.data;
+        } catch (error) {
+            console.log(error);
+            throw error;
+        }
+    }
+
+    /**
+     * Get all attachments for a formation
+     */
+    export async function getAttachmentsByFormation(formationId) {
+        try {
+            const token = getCookie("token");
+            const response = await api.get(`/api/attachments/formation/${formationId}`, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+            return response.data;
+        } catch (error) {
+            console.log(error);
+            throw error;
+        }
+    }
+
+    /**
+     * Download attachment file
+     */
+    export async function downloadAttachment(attachmentId, originalFileName) {
+        try {
+            const token = getCookie("token");
+
+            const response = await api.get(`/api/attachments/${attachmentId}/download`, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+                responseType: "blob",
+            });
+
+            // Create blob URL and trigger download
+            const blobUrl = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement("a");
+
+            // Get filename from header or use provided name
+            const disposition = response.headers["content-disposition"];
+            let fileName = originalFileName || "attachment";
+            if (disposition && disposition.includes("filename=")) {
+                fileName = disposition
+                    .split("filename=")[1]
+                    .replace(/"/g, "")
+                    .trim();
+            }
+
+            link.href = blobUrl;
+            link.setAttribute("download", fileName);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.URL.revokeObjectURL(blobUrl);
+
+            return true;
+        } catch (error) {
+            console.log(error);
+            throw error;
+        }
+    }
+
+    /**
+     * Get attachment preview URL (for images, PDFs)
+     */
+    export function getAttachmentPreviewUrl(attachmentId) {
+        const token = getCookie("token");
+        return `${api.defaults.baseURL}/api/attachments/${attachmentId}/preview?token=${token}`;
+    }
+
+    /**
+     * Delete attachment
+     */
+    export async function deleteAttachment(attachmentId) {
+        try {
+            const token = getCookie("token");
+            await api.delete(`/api/attachments/${attachmentId}`, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+            return true;
+        } catch (error) {
+            console.log(error);
+            throw error;
+        }
+    }
+
+    /**
+     * Delete all attachments for a formation
+     */
+    export async function deleteAllAttachments(formationId) {
+        try {
+            const token = getCookie("token");
+            await api.delete(`/api/attachments/formation/${formationId}`, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+            return true;
+        } catch (error) {
+            console.log(error);
+            throw error;
+        }
+    }
+
+    /**
+     * Get attachment count for a formation
+     */
+    export async function getAttachmentCount(formationId) {
+        try {
+            const token = getCookie("token");
+            const response = await api.get(
+                `/api/attachments/formation/${formationId}/count`,
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                }
+            );
+            return response.data;
+        } catch (error) {
+            console.log(error);
+            throw error;
+        }
+    }
+
+    /**
+     * Get total file size for a formation
+     */
+    export async function getTotalFileSize(formationId) {
+        try {
+            const token = getCookie("token");
+            const response = await api.get(
+                `/api/attachments/formation/${formationId}/total-size`,
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                }
+            );
+            return response.data;
+        } catch (error) {
+            console.log(error);
+            throw error;
+        }
+    }
+
+    /**
+     * Get attachments by file type
+     */
+    export async function getAttachmentsByFileType(formationId, fileType) {
+        try {
+            const token = getCookie("token");
+            const response = await api.get(
+                `/api/attachments/formation/${formationId}/type/${encodeURIComponent(fileType)}`,
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                }
+            );
+            return response.data;
+        } catch (error) {
+            console.log(error);
+            throw error;
+        }
+    }
+
+// ============================================================================
+// UTILITY FUNCTIONS
+// ============================================================================
+
+    /**
+     * Format file size from bytes to human readable format
+     */
+    export function formatFileSize(bytes) {
+        if (bytes === 0) return "0 B";
+        if (bytes < 1024) return bytes + " B";
+        if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(2) + " KB";
+        return (bytes / (1024 * 1024)).toFixed(2) + " MB";
+    }
+
+    /**
+     * Validate file before upload
+     */
+    export function validateFile(file, maxSize = 5 * 1024 * 1024, allowedTypes = []) {
+        // Check file size (default 5MB)
+        if (file.size > maxSize) {
+            throw new Error(
+                `File size exceeds ${formatFileSize(maxSize)}. File: ${file.name}`
+            );
+        }
+
+        // Check file type if allowedTypes is provided
+        if (allowedTypes.length > 0 && !allowedTypes.includes(file.type)) {
+            throw new Error(`File type not allowed: ${file.type}. File: ${file.name}`);
+        }
+
+        return true;
+    }
+
+    /**
+     * Validate multiple files
+     */
+    export function validateFiles(files, maxSize = 5 * 1024 * 1024, allowedTypes = []) {
+        const errors = [];
+
+        files.forEach((file) => {
+            try {
+                validateFile(file, maxSize, allowedTypes);
+            } catch (error) {
+                errors.push(error.message);
+            }
+        });
+
+        if (errors.length > 0) {
+            throw new Error(errors.join("\n"));
+        }
+
+        return true;
+    }
+
+    /**
+     * Common file types for validation
+     */
+    export const FILE_TYPES = {
+        PDF: "application/pdf",
+        WORD: "application/msword",
+        WORD_DOCX:
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        EXCEL: "application/vnd.ms-excel",
+        EXCEL_XLSX:
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        JPEG: "image/jpeg",
+        PNG: "image/png",
+        GIF: "image/gif",
+    };
+
+    /**
+     * Common allowed file types
+     */
+    export const ALLOWED_DOCUMENT_TYPES = [
+        FILE_TYPES.PDF,
+        FILE_TYPES.WORD,
+        FILE_TYPES.WORD_DOCX,
+        FILE_TYPES.EXCEL,
+        FILE_TYPES.EXCEL_XLSX,
+    ];
+
+    export const ALLOWED_IMAGE_TYPES = [FILE_TYPES.JPEG, FILE_TYPES.PNG, FILE_TYPES.GIF];
+
+    export const ALLOWED_ALL_TYPES = [
+        ...ALLOWED_DOCUMENT_TYPES,
+        ...ALLOWED_IMAGE_TYPES,
+    ];
