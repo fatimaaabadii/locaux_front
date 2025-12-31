@@ -120,7 +120,7 @@ function formatDateToLongDateString(timestamp) {
 export async function getUsers() {
     try {
       const token = getCookie("token");
-      
+
       const response = await api.get("/auth/getUsers" ,{
         headers: {
           Authorization: `Bearer ${token}`,
@@ -128,7 +128,7 @@ export async function getUsers() {
       });
       console.log(response.data);
       return response.data;
-      
+
     } catch (error) {
       console.log(error);
     }
@@ -137,7 +137,7 @@ export async function getUsers() {
 export async function getUnits() {
     try {
       const token = getCookie("token");
-      
+
       const response = await api.get("/uniteOrganisationnelle/getAll" ,{
         headers: {
           Authorization: `Bearer ${token}`,
@@ -145,7 +145,7 @@ export async function getUnits() {
       });
       console.log(response.data);
       return response.data;
-      
+
     } catch (error) {
       console.log(error);
     }
@@ -169,21 +169,21 @@ export function getOperations() {
 export async function getOperationsByDelegations(iddeleg) {
     try {
       const token = getCookie("token");
-  
+
       // Utiliser la syntaxe de template string pour inclure `iddeleg` dans l'URL
       const response = await api.get(`/receptions/province/${iddeleg}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
-  
+
      //  console.log(response.data); // Décommentez cette ligne si vous voulez voir la réponse dans la console
       return response.data;
     } catch (error) {
       console.log(error);
     }
   }
-  
+
 export function getProduits() {
     return async () => {
         // TODO checks and params to all custom hooks
@@ -258,6 +258,18 @@ export function getDelegations() {
         return data;
     };
 }
+
+export async function getAllDelegations() {
+    const token = getCookie('token');
+    const { data } = await api.get('/delegation/getDelegations', {
+        headers: {
+            Authorization: `Bearer ${token}`,
+        }
+    });
+    return data;
+}
+
+
 const tokenPayload = async () => {
     const token = await getCookie('token');
     if (!token) return null;
@@ -285,7 +297,7 @@ const tokenPayload = async () => {
     export async function getGroupMembers() {
         try {
           const token = getCookie("token");
-          
+
           const response = await api.get("/membreGroupe/getAll" ,{
             headers: {
               Authorization: `Bearer ${token}`,
@@ -293,18 +305,18 @@ const tokenPayload = async () => {
           });
           console.log(response.data);
           return response.data;
-          
+
         } catch (error) {
           console.log(error);
         }
 
     }
 
-    
 
 
 
-    
+
+
 
 
 
@@ -312,7 +324,7 @@ const tokenPayload = async () => {
         export async function getGroups() {
             try {
               const token = getCookie("token");
-              
+
               const response = await api.get("/groupeDistribution/getAll" ,{
                 headers: {
                   Authorization: `Bearer ${token}`,
@@ -320,7 +332,7 @@ const tokenPayload = async () => {
               });
               console.log(response.data);
               return response.data;
-              
+
             } catch (error) {
               console.log(error);
             }
@@ -346,7 +358,7 @@ const tokenPayload = async () => {
           });
          // console.log(response.data);
           return response.data;
-          
+
         } catch (error) {
           console.log(error);
         }
@@ -356,7 +368,7 @@ const tokenPayload = async () => {
 export async function getStockActuel() {
   try {
     const token = getCookie("token");
-    
+
     const response = await api.get('/reception/details/stockActuel' ,{
       headers: {
         Authorization: `Bearer ${token}`,
@@ -364,7 +376,7 @@ export async function getStockActuel() {
     });
   // console.log(response.data);
     return response.data;
-    
+
   } catch (error) {
     console.log(error);
   }
@@ -375,7 +387,7 @@ export async function getStockActuel() {
 export async function getPreparation(iddeleg) {
     try {
       const token = getCookie("token");
-      
+
       const response = await api.get(`/preparation/delegation/${iddeleg}` ,{
         headers: {
           Authorization: `Bearer ${token}`,
@@ -383,7 +395,7 @@ export async function getPreparation(iddeleg) {
       });
     console.log("token",token);
       return response.data;
-      
+
     } catch (error) {
       console.log(error);
     }
@@ -408,7 +420,7 @@ export function getPreparations() {
 export async function getDistribution(iddeleg) {
     try {
       const token = getCookie("token");
-      
+
       const response = await api.get(`/distribution/delegation/${iddeleg}` ,{
         headers: {
           Authorization: `Bearer ${token}`,
@@ -416,7 +428,7 @@ export async function getDistribution(iddeleg) {
       });
     // console.log(response.data);
       return response.data;
-      
+
     } catch (error) {
       console.log(error);
     }
@@ -427,7 +439,7 @@ export async function getDistribution(iddeleg) {
 export async function getStocktotalByDelegation(iddeleg) {
     try {
       const token = getCookie("token");
-  
+
       // Utiliser la syntaxe de template string pour inclure `iddeleg` dans l'URL
       const response = await api.get(`/reception/details/quantite-par-produit`, {
         params: { delegationId: iddeleg },
@@ -435,14 +447,14 @@ export async function getStocktotalByDelegation(iddeleg) {
           Authorization: `Bearer ${token}`,
         },
       });
-  
+
       // console.log(response.data); // Décommentez cette ligne si vous voulez voir la réponse dans la console
       return response.data;
     } catch (error) {
       console.log(error);
     }
   }
-  
+
   export function getPartenariats() {
     return async () => {
         // TODO checks and params to all custom hooks
@@ -526,8 +538,8 @@ export async function getStocktotalByDelegation(iddeleg) {
         return data;
     };
 
-  
-    
+
+
 }
 
 export function downloadPieceJointePartenariat(partenariatId) {

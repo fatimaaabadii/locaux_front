@@ -38,7 +38,6 @@ const AxesManagementPage = () => {
     const [formData, setFormData] = useState({
         nom: "",
         description: "",
-        actif: true,
     })
     const [editFormData, setEditFormData] = useState(null)
 
@@ -48,37 +47,33 @@ const AxesManagementPage = () => {
         queryFn: getCurrentUser,
     })
 
-    const { data: axes = [], isLoading } = useQuery({
+    const { data: axes = [], isLoading, error } = useQuery({
         queryKey: ["axes"],
         queryFn: getAxes,
     })
-
-    const token = getCookie("token")
-    const headers = { Authorization: `Bearer ${token}` }
 
     React.useEffect(() => {
         if (selectedAxe && showEditModal) {
             setEditFormData({
                 nom: selectedAxe.nom || "",
                 description: selectedAxe.description || "",
-                actif: selectedAxe.actif !== false,
             })
         }
     }, [selectedAxe, showEditModal])
 
     const handleFormChange = (e) => {
-        const { name, value, type, checked } = e.target
+        const { name, value } = e.target
         setFormData((prev) => ({
             ...prev,
-            [name]: type === "checkbox" ? checked : value,
+            [name]: value,
         }))
     }
 
     const handleEditChange = (e) => {
-        const { name, value, type, checked } = e.target
+        const { name, value } = e.target
         setEditFormData((prev) => ({
             ...prev,
-            [name]: type === "checkbox" ? checked : value,
+            [name]: value,
         }))
     }
 
@@ -87,9 +82,11 @@ const AxesManagementPage = () => {
         onSuccess: () => {
             queryClient.invalidateQueries(["axes"])
             setShowCreateModal(false)
-            setFormData({ nom: "", description: "", actif: true })
+            setFormData({ nom: "", description: "" })
+            alert("Axe créé avec succès!")
         },
         onError: (error) => {
+            console.error("Create error:", error)
             const message = error.response?.data?.message || error.message || "Erreur lors de la création"
             alert(`Erreur: ${message}`)
         },
@@ -97,17 +94,23 @@ const AxesManagementPage = () => {
 
     const handleCreateSubmit = (e) => {
         e.preventDefault()
+        if (!formData.nom.trim()) {
+            alert("Le nom de l'axe est requis")
+            return
+        }
         createMutation.mutate(formData)
     }
 
     const editMutation = useMutation({
-        mutationFn: (data) => updateAxe(selectedAxe.id, data),
+        mutationFn: ({ id, data }) => updateAxe(id, data),
         onSuccess: (data) => {
             queryClient.invalidateQueries(["axes"])
             setSelectedAxe(data)
             setShowEditModal(false)
+            alert("Axe modifié avec succès!")
         },
         onError: (error) => {
+            console.error("Edit error:", error)
             const message = error.response?.data?.message || error.message || "Erreur lors de la mise à jour"
             alert(`Erreur: ${message}`)
         },
@@ -115,7 +118,11 @@ const AxesManagementPage = () => {
 
     const handleEditSubmit = (e) => {
         e.preventDefault()
-        editMutation.mutate(editFormData)
+        if (!editFormData.nom.trim()) {
+            alert("Le nom de l'axe est requis")
+            return
+        }
+        editMutation.mutate({ id: selectedAxe.id, data: editFormData })
     }
 
     const deleteMutation = useMutation({
@@ -124,19 +131,42 @@ const AxesManagementPage = () => {
             queryClient.invalidateQueries(["axes"])
             setShowDeleteModal(false)
             setSelectedAxe(null)
+            alert("Axe supprimé avec succès!")
+        },
+        onError: (error) => {
+            console.error("Delete error:", error)
+            const message = error.response?.data?.message || error.message || "Erreur lors de la suppression"
+            alert(`Erreur: ${message}`)
         },
     })
 
     const handleDelete = () => {
+        if (!selectedAxe?.id) {
+            alert("ID de l'axe non trouvé")
+            return
+        }
         deleteMutation.mutate(selectedAxe.id)
     }
 
     const itemsPerPage = 10
 
-    const filteredAxes = axes.filter((axe) => axe.nom?.toLowerCase().includes(searchTerm.toLowerCase()))
+    const filteredAxes = Array.isArray(axes)
+        ? axes.filter((axe) => axe.nom?.toLowerCase().includes(searchTerm.toLowerCase()))
+        : []
 
     const totalPages = Math.ceil(filteredAxes.length / itemsPerPage)
     const paginatedAxes = filteredAxes.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+
+    // Display error if any
+    if (error) {
+        return (
+            <div className="ml-64 bg-gray-50 min-h-screen p-6">
+                <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+                    <strong>Erreur:</strong> {error.message}
+                </div>
+            </div>
+        )
+    }
 
     return (
         <div className="ml-64 bg-gray-50 min-h-screen">
@@ -173,56 +203,57 @@ const AxesManagementPage = () => {
                 <div className="bg-white rounded-lg shadow-sm border border-gray-100">
                     {isLoading ? (
                         <div className="p-4 text-center">Chargement...</div>
+                    ) : filteredAxes.length === 0 ? (
+                        <div className="p-4 text-center text-gray-500">Aucun axe trouvé</div>
                     ) : (
                         <table className="w-full text-left text-sm">
                             <thead>
-                            <tr>
-                                <th className="py-2 px-4 border-b">Nom</th>
-                                <th className="py-2 px-4 border-b">Description</th>
-                                <th className="py-2 px-4 border-b">Statut</th>
-                                <th className="py-2 px-4 border-b">Actions</th>
+                            <tr className="bg-gray-50">
+                                <th className="py-3 px-4 border-b font-semibold text-gray-700">Nom</th>
+                                <th className="py-3 px-4 border-b font-semibold text-gray-700">Description</th>
+                                <th className="py-3 px-4 border-b font-semibold text-gray-700 text-center">Actions</th>
                             </tr>
                             </thead>
                             <tbody>
                             {paginatedAxes.map((axe) => (
-                                <tr key={axe.id} className="hover:bg-gray-50">
-                                    <td className="py-2 px-4 border-b">{axe.nom}</td>
-                                    <td className="py-2 px-4 border-b">{axe.description}</td>
-                                    <td className="py-2 px-4 border-b">
-                                        {axe.actif ? (
-                                            <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">Active</span>
-                                        ) : (
-                                            <span className="px-2 py-1 bg-red-100 text-red-800 text-xs rounded-full">Inactive</span>
-                                        )}
+                                <tr key={axe.id} className="hover:bg-gray-50 transition-colors">
+                                    <td className="py-3 px-4 border-b font-medium">{axe.nom}</td>
+                                    <td className="py-3 px-4 border-b text-gray-600">
+                                        {axe.description || "Aucune description"}
                                     </td>
-                                    <td className="py-2 px-4 border-b space-x-2">
-                                        <button
-                                            className="text-blue-600 hover:underline flex items-center gap-1"
-                                            onClick={() => {
-                                                setSelectedAxe(axe)
-                                                setShowDetailsModal(true)
-                                            }}
-                                        >
-                                            <Eye size={16} /> Détails
-                                        </button>
-                                        <button
-                                            className="text-green-600 hover:underline flex items-center gap-1"
-                                            onClick={() => {
-                                                setSelectedAxe(axe)
-                                                setShowEditModal(true)
-                                            }}
-                                        >
-                                            <Edit size={16} /> Modifier
-                                        </button>
-                                        <button
-                                            className="text-red-600 hover:underline flex items-center gap-1"
-                                            onClick={() => {
-                                                setSelectedAxe(axe)
-                                                setShowDeleteModal(true)
-                                            }}
-                                        >
-                                            <Trash2 size={16} /> Supprimer
-                                        </button>
+                                    <td className="py-3 px-4 border-b">
+                                        <div className="flex justify-center gap-3">
+                                            <button
+                                                className="text-blue-600 hover:text-blue-800 flex items-center gap-1 transition-colors"
+                                                onClick={() => {
+                                                    setSelectedAxe(axe)
+                                                    setShowDetailsModal(true)
+                                                }}
+                                                title="Voir les détails"
+                                            >
+                                                <Eye size={16} />
+                                            </button>
+                                            <button
+                                                className="text-green-600 hover:text-green-800 flex items-center gap-1 transition-colors"
+                                                onClick={() => {
+                                                    setSelectedAxe(axe)
+                                                    setShowEditModal(true)
+                                                }}
+                                                title="Modifier"
+                                            >
+                                                <Edit size={16} />
+                                            </button>
+                                            <button
+                                                className="text-red-600 hover:text-red-800 flex items-center gap-1 transition-colors"
+                                                onClick={() => {
+                                                    setSelectedAxe(axe)
+                                                    setShowDeleteModal(true)
+                                                }}
+                                                title="Supprimer"
+                                            >
+                                                <Trash2 size={16} />
+                                            </button>
+                                        </div>
                                     </td>
                                 </tr>
                             ))}
@@ -231,17 +262,23 @@ const AxesManagementPage = () => {
                     )}
                 </div>
 
-                <div className="mt-4 flex justify-center gap-2">
-                    {[...Array(totalPages)].map((_, index) => (
-                        <button
-                            key={index}
-                            className={`px-3 py-1 rounded border ${currentPage === index + 1 ? "bg-gray-300" : ""}`}
-                            onClick={() => setCurrentPage(index + 1)}
-                        >
-                            {index + 1}
-                        </button>
-                    ))}
-                </div>
+                {totalPages > 1 && (
+                    <div className="mt-4 flex justify-center gap-2">
+                        {[...Array(totalPages)].map((_, index) => (
+                            <button
+                                key={index}
+                                className={`px-3 py-1 rounded border transition-colors ${
+                                    currentPage === index + 1
+                                        ? "bg-blue-600 text-white border-blue-600"
+                                        : "bg-white hover:bg-gray-100 border-gray-300"
+                                }`}
+                                onClick={() => setCurrentPage(index + 1)}
+                            >
+                                {index + 1}
+                            </button>
+                        ))}
+                    </div>
+                )}
 
                 {/* Modal Détails */}
                 <Modal
@@ -255,21 +292,10 @@ const AxesManagementPage = () => {
                         <div className="p-6">
                             <div className="mb-6">
                                 <h3 className="text-2xl font-bold text-gray-800 mb-2">{selectedAxe.nom}</h3>
-                                <p className="text-gray-600">{selectedAxe.description}</p>
-                            </div>
-                            <div className="flex items-center">
-                                <span className="text-sm text-gray-600 mr-2">Statut:</span>
-                                {selectedAxe.actif ? (
-                                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                    <FaCheckCircle className="mr-1" size={12} />
-                    Active
-                  </span>
-                                ) : (
-                                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                    <FaTimesCircle className="mr-1" size={12} />
-                    Inactive
-                  </span>
-                                )}
+                                <div className="mt-4">
+                                    <label className="text-sm font-semibold text-gray-600">Description:</label>
+                                    <p className="text-gray-700 mt-1">{selectedAxe.description || "Aucune description"}</p>
+                                </div>
                             </div>
                         </div>
                     )}
@@ -280,7 +306,7 @@ const AxesManagementPage = () => {
                     isOpen={showCreateModal}
                     onClose={() => {
                         setShowCreateModal(false)
-                        setFormData({ nom: "", description: "", actif: true })
+                        setFormData({ nom: "", description: "" })
                     }}
                 >
                     <form onSubmit={handleCreateSubmit} className="p-6 space-y-6">
@@ -300,6 +326,7 @@ const AxesManagementPage = () => {
                                         onChange={handleFormChange}
                                         className="w-full border border-gray-300 p-2 rounded focus:ring-2 focus:ring-blue-500"
                                         required
+                                        placeholder="Entrez le nom de l'axe"
                                     />
                                 </div>
                                 <div>
@@ -310,17 +337,8 @@ const AxesManagementPage = () => {
                                         onChange={handleFormChange}
                                         className="w-full border border-gray-300 p-2 rounded focus:ring-2 focus:ring-blue-500"
                                         rows={4}
+                                        placeholder="Entrez une description (optionnel)"
                                     />
-                                </div>
-                                <div className="flex items-center">
-                                    <input
-                                        type="checkbox"
-                                        name="actif"
-                                        checked={formData.actif}
-                                        onChange={handleFormChange}
-                                        className="mr-2"
-                                    />
-                                    <label className="font-medium text-sm">Axe actif</label>
                                 </div>
                             </div>
                         </div>
@@ -329,16 +347,19 @@ const AxesManagementPage = () => {
                             <button
                                 type="button"
                                 className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200"
-                                onClick={() => setShowCreateModal(false)}
+                                onClick={() => {
+                                    setShowCreateModal(false)
+                                    setFormData({ nom: "", description: "" })
+                                }}
                             >
                                 Annuler
                             </button>
                             <button
                                 type="submit"
                                 className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50"
-                                disabled={createMutation.isLoading}
+                                disabled={createMutation.isPending}
                             >
-                                {createMutation.isLoading ? "Création..." : "Créer"}
+                                {createMutation.isPending ? "Création..." : "Créer"}
                             </button>
                         </div>
                     </form>
@@ -371,6 +392,7 @@ const AxesManagementPage = () => {
                                             onChange={handleEditChange}
                                             className="w-full border border-gray-300 p-2 rounded focus:ring-2 focus:ring-blue-500"
                                             required
+                                            placeholder="Entrez le nom de l'axe"
                                         />
                                     </div>
                                     <div>
@@ -381,17 +403,8 @@ const AxesManagementPage = () => {
                                             onChange={handleEditChange}
                                             className="w-full border border-gray-300 p-2 rounded focus:ring-2 focus:ring-blue-500"
                                             rows={4}
+                                            placeholder="Entrez une description (optionnel)"
                                         />
-                                    </div>
-                                    <div className="flex items-center">
-                                        <input
-                                            type="checkbox"
-                                            name="actif"
-                                            checked={editFormData.actif}
-                                            onChange={handleEditChange}
-                                            className="mr-2"
-                                        />
-                                        <label className="font-medium text-sm">Axe actif</label>
                                     </div>
                                 </div>
                             </div>
@@ -400,16 +413,20 @@ const AxesManagementPage = () => {
                                 <button
                                     type="button"
                                     className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200"
-                                    onClick={() => setShowEditModal(false)}
+                                    onClick={() => {
+                                        setShowEditModal(false)
+                                        setSelectedAxe(null)
+                                        setEditFormData(null)
+                                    }}
                                 >
                                     Annuler
                                 </button>
                                 <button
                                     type="submit"
                                     className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50"
-                                    disabled={editMutation.isLoading}
+                                    disabled={editMutation.isPending}
                                 >
-                                    {editMutation.isLoading ? "Modification..." : "Modifier"}
+                                    {editMutation.isPending ? "Modification..." : "Modifier"}
                                 </button>
                             </div>
                         </form>
@@ -441,15 +458,16 @@ const AxesManagementPage = () => {
                                         setShowDeleteModal(false)
                                         setSelectedAxe(null)
                                     }}
+                                    disabled={deleteMutation.isPending}
                                 >
                                     Annuler
                                 </button>
                                 <button
                                     className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700 disabled:opacity-50"
                                     onClick={handleDelete}
-                                    disabled={deleteMutation.isLoading}
+                                    disabled={deleteMutation.isPending}
                                 >
-                                    {deleteMutation.isLoading ? "Suppression..." : "Supprimer"}
+                                    {deleteMutation.isPending ? "Suppression..." : "Supprimer"}
                                 </button>
                             </div>
                         </div>
