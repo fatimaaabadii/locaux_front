@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { FaHome, FaEnvelope, FaSignOutAlt, FaUser, FaUsers, FaWarehouse, FaBoxOpen, FaHandshake } from "react-icons/fa";
+import { FaHome, FaEnvelope, FaSignOutAlt, FaUser, FaUsers, FaWarehouse, FaBoxOpen, FaHandshake ,FaUserGraduate} from "react-icons/fa";
 import { useQuery } from "@tanstack/react-query";
 import { getCurrentUser } from "/src/api";
 import { deleteCookie } from "cookies-next";
@@ -108,6 +108,8 @@ const Sidebar = () => {
             </li>
           )}
 
+
+
           {/* Partenariat */}
           {(isAdmin || hasRole("Partenariat")) && (
             <li>
@@ -128,6 +130,26 @@ const Sidebar = () => {
               )}
             </li>
           )}
+          
+{(isAdmin || hasRole("Formation")) && (
+            <li>
+              <button
+                onClick={() => setOpenStock(!openStock)}
+                className="flex items-center w-full h-11 text-gray-800 hover:text-gray-900 border-l-4 border-transparent hover:border-gray-400 px-6 focus:outline-none"
+              >
+                <FaUserGraduate className="w-5 h-5 text-white mr-3" />
+                <span className="text-l text-white">Formations</span>
+              </button>
+              {openStock && (
+                <ul className="ml-10 mt-1 space-y-1">
+                  <li><Link href="/axes-management" className="block px-2 py-1 text-sm text-white rounded">Axes de formations</Link></li>
+                  <li><Link href="/Inventaire_actuel" className="block px-2 py-1 text-sm text-white rounded">Formations</Link></li>
+                 
+                </ul>
+              )}
+            </li>
+          )}
+
 
           {/* Utilisateurs */}
           {isAdmin && (

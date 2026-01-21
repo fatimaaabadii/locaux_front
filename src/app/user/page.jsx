@@ -5,6 +5,8 @@ import { setCookie, getCookie, deleteCookie } from "cookies-next";
 import { useQuery } from "@tanstack/react-query";
 import { useToast } from "/src/components/ui/use-toast";
 import Image from 'next/image';
+
+
 function ProfilePage() {
   const [userEmail, setUserEmail] = useState('');
   const [userRole, setUserRole] = useState('Délégué');
@@ -22,6 +24,8 @@ function ProfilePage() {
     queryKey: ['user'],
     queryFn: getCurrentUser(),
   });
+
+  console.log(userData);
   const handleSubmitPasswordChange = async (e) => {
     e.preventDefault();
     if (oldPassword && newPassword && confirmNewPassword && newPassword === confirmNewPassword) {
