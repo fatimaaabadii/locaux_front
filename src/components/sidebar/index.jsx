@@ -6,7 +6,7 @@ import { FaHome, FaEnvelope, FaSignOutAlt, FaUser, FaUsers, FaWarehouse, FaBoxOp
 import { useQuery } from "@tanstack/react-query";
 import { getCurrentUser } from "/src/api";
 import { deleteCookie } from "cookies-next";
-
+import { FaNewspaper, FaBroadcastTower , FaPenNib,FaEdit  } from "react-icons/fa";
 const Sidebar = () => {
   const { data: userData } = useQuery({
     queryKey: ['user'],
@@ -17,7 +17,7 @@ const Sidebar = () => {
   const [openLocaux, setOpenLocaux] = useState(false);
   const [openPartenariat, setOpenPartenariat] = useState(false);
   const [openStock, setOpenStock] = useState(false);
-
+ const [openCommunication, setOpenCommunication] = useState(false);
   const hasRole = (roleName) => {
     return userData?.roles?.some(role => role.name === roleName);
   };
@@ -131,6 +131,25 @@ const Sidebar = () => {
             </li>
           )}
           
+
+  {(isAdmin || hasRole("Communication")) && (
+            <li>
+              <button
+                onClick={() => setOpenCommunication(!openStock)}
+                className="flex items-center w-full h-11 text-gray-800 hover:text-gray-900 border-l-4 border-transparent hover:border-gray-400 px-6 focus:outline-none"
+              >
+                <FaEdit   className="w-5 h-5 text-white mr-3" />
+                <span className="text-l text-white">Communication</span>
+              </button>
+              {openCommunication && (
+                <ul className="ml-10 mt-1 space-y-1">
+                  <li><Link href="/articles" className="block px-2 py-1 text-sm text-white rounded">Ajouter un nouveau article</Link></li>
+                
+                </ul>
+              )}
+            </li>
+          )}
+
 {(isAdmin || hasRole("Formation")) && (
             <li>
               <button
@@ -143,7 +162,7 @@ const Sidebar = () => {
               {openStock && (
                 <ul className="ml-10 mt-1 space-y-1">
                   <li><Link href="/axes-management" className="block px-2 py-1 text-sm text-white rounded">Axes de formations</Link></li>
-                  <li><Link href="/Inventaire_actuel" className="block px-2 py-1 text-sm text-white rounded">Formations</Link></li>
+                  <li><Link href="/formations-management" className="block px-2 py-1 text-sm text-white rounded">Formations</Link></li>
                  
                 </ul>
               )}

@@ -17,7 +17,7 @@ client.interceptors.response.use(
         } if (error.response.status === 403) {
             console.log('error 403');
             deleteCookie('token');
-            window.location.href = '/login';
+          //  window.location.href = '/login';
         }
         return Promise.reject(error);
     }
@@ -77,7 +77,20 @@ export function getStatistiquesPartenariats() {
 
 
 
+export const getArticles = async (page = 0, size = 8) => {
+    const token = getCookie('token');
 
+    const { data } = await api.get(
+        `/api/articles/page?page=${page}&size=${size}`,
+        {
+            headers: {
+                Authorization: `Bearer ${token}`,
+            }
+        }
+    );
+
+    return data;
+};
 
 
 export function getMessage() {
@@ -184,6 +197,38 @@ export async function getOperationsByDelegations(iddeleg) {
     }
   }
 
+
+
+
+
+export async function getArticlesByDelegations(iddeleg, page = 0, size = 8) {
+  const token = getCookie("token");
+
+  try {
+    const response = await api.get(
+      `/api/articles/province/${iddeleg}?page=${page}&size=${size}`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error) {
+    console.log(error);
+    throw error;
+  }
+}
+
+
+
+
+
+
+
+
+
 export function getProduits() {
     return async () => {
         // TODO checks and params to all custom hooks
@@ -241,6 +286,45 @@ export function getLocaux() {
         return data;
     };
 }
+
+
+   export async function getTypeevenements() {
+        try {
+          const token = getCookie("token");
+
+          const response = await api.get("/api/type-evenements" ,{
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          });
+          console.log(response.data);
+          return response.data;
+
+        } catch (error) {
+          console.log(error);
+        }
+
+    }
+
+ 
+      export async function getMediaPresente() {
+        try {
+          const token = getCookie("token");
+
+          const response = await api.get("/api/media-communication" ,{
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          });
+          console.log(response.data);
+          return response.data;
+
+        } catch (error) {
+          console.log(error);
+        }
+
+    }
+
 
 
 
