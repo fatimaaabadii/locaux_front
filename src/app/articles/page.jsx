@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { FaSearch, FaPlus, FaTrash, FaImage, FaVideo, FaTimes, FaUpload, FaEye, FaDownload, FaSpinner } from "react-icons/fa";
 import { api, getArticles, getCurrentUser, getTypeevenements, getMediaPresente , getArticlesByDelegations} from "/src/api";
 import { getCookie } from "cookies-next";
+import axios from "axios";
 
 const BASE_URL = "http://localhost:8080";
 
@@ -162,15 +163,17 @@ const ArticleEditModal = ({ article, onClose, onSubmit, isSubmitting, typeEvenem
     lienArticleMedia: article.lienArticleMedia || "",
     etat: article.etat || "En cours de traitement",
     observation: article.observation || "",
-    typeEvenement: article.typeEvenement || { id: "" },
-    medias: article.medias?.map((m) => ({ id: m.id })) || [],
+    typeEvenement: { id: article.typeEvenement?.id || "" },
+   medias: article.medias?.map((m) => ({ id: m.id })) || [],
     partenaires: article.partenaires?.map((p) => ({ id: p.id, name: p.name })) || [],
     presences: article.presences?.map((p) => ({ id: p.id, name: p.name })) || [],
   });
 
   const [partenaireInput, setPartenaireInput] = useState("");
   const [presenceInput, setPresenceInput] = useState("");
-
+   const [deletedMediaIds, setDeletedMediaIds] = useState([]);
+const [newFiles, setNewFiles] = useState([]);
+const fileInputRef = useRef(null);
   const set = (field, value) => setForm((f) => ({ ...f, [field]: value }));
 
   const toggleMedia = (mediaItem) => {
@@ -191,16 +194,28 @@ const ArticleEditModal = ({ article, onClose, onSubmit, isSubmitting, typeEvenem
   const removeTag = (field, id) =>
     setForm((f) => ({ ...f, [field]: f[field].filter((t) => t.id !== id) }));
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    const cleaned = {
-      ...form,
-      medias: form.medias.map(({ id }) => ({ id })),
-      partenaires: form.partenaires.map(({ name }) => ({ name })),
-      presences: form.presences.map(({ name }) => ({ name })),
-    };
-    onSubmit(cleaned);
+ const handleSubmit = (e) => {
+  e.preventDefault();
+
+  const cleaned = {
+    ...form,
+    etat: article.etat,
+    corrige:article.corrige,
+    medias: form.medias.map(({ id }) => ({ id })),
+    partenaires: form.partenaires.map(({ name }) => ({ name })),
+    presences: form.presences.map(({ name }) => ({ name })),
+    deletedMediaIds, // 🔥 important
   };
+
+  const fd = new FormData();
+  fd.append("article", JSON.stringify(cleaned));
+
+  newFiles.forEach((file) => {
+    fd.append("files", file);
+  });
+
+  onSubmit(fd);
+};
 
   const inputCls = "w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-800 outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white transition";
   const labelCls = "text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1 block";
@@ -298,23 +313,91 @@ const ArticleEditModal = ({ article, onClose, onSubmit, isSubmitting, typeEvenem
           <Section title="Lien média externe">
             <input className={inputCls} placeholder="https://..." value={form.lienArticleMedia} onChange={(e) => set("lienArticleMedia", e.target.value)} />
           </Section>
+<Section title="Photos & Vidéos existantes">
+  {article.piecesJointes?.length ? (
+    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+      {article.piecesJointes.map((p) => {
+        const isDeleted = deletedMediaIds.includes(p.id);
 
-          <Section title="État & Observation">
-            <div className="grid grid-cols-1 gap-4">
-              <div>
-                <label className={labelCls}>État</label>
-                <select className={inputCls} value={form.etat} onChange={(e) => set("etat", e.target.value)}>
-                  <option value="En cours de traitement">En cours de traitement</option>
-                  <option value="Validé">Validé</option>
-                  <option value="Rejeté">Rejeté</option>
-                </select>
-              </div>
-              <div>
-                <label className={labelCls}>Observation</label>
-                <textarea rows={3} className={inputCls} value={form.observation} onChange={(e) => set("observation", e.target.value)} />
-              </div>
-            </div>
-          </Section>
+        if (isDeleted) return null;
+
+        return (
+          <div key={p.id} className="relative group border rounded-lg overflow-hidden">
+            <AuthenticatedMedia
+              lien={p.lien}
+              typeFichier={p.typeFichier}
+              nomFichier={p.nomFichier}
+            />
+
+            {/* bouton supprimer */}
+            <button
+              type="button"
+              onClick={() =>
+                setDeletedMediaIds((prev) => [...prev, p.id])
+              }
+              className="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white w-7 h-7 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition"
+            >
+              ✕
+            </button>
+          </div>
+        );
+      })}
+    </div>
+  ) : (
+    <p className="text-gray-400 text-sm italic">
+      Aucun média existant
+    </p>
+  )}
+</Section>
+    <Section title="Ajouter des photos / vidéos">
+  <div
+    onClick={() => fileInputRef.current?.click()}
+    className="border-2 border-dashed border-green-200 rounded-xl p-6 text-center cursor-pointer hover:bg-green-50"
+  >
+    Cliquez pour ajouter
+  </div>
+
+  <input
+    ref={fileInputRef}
+    type="file"
+    multiple
+    accept="image/*,video/*"
+    className="hidden"
+    onChange={(e) => {
+      const files = Array.from(e.target.files);
+      setNewFiles((prev) => [...prev, ...files]);
+    }}
+  />
+
+  {newFiles.length > 0 && (
+    <div className="mt-4 grid grid-cols-3 gap-3">
+      {newFiles.map((file, idx) => {
+        const preview = URL.createObjectURL(file);
+        const isVideo = file.type.startsWith("video");
+
+        return (
+          <div key={idx} className="relative group">
+            {isVideo ? (
+              <video src={preview} className="w-full h-32 object-cover rounded" />
+            ) : (
+              <img src={preview} className="w-full h-32 object-cover rounded" />
+            )}
+
+            <button
+              type="button"
+              onClick={() =>
+                setNewFiles((prev) => prev.filter((_, i) => i !== idx))
+              }
+              className="absolute top-1 right-1 bg-red-500 text-white w-6 h-6 rounded-full"
+            >
+              ✕
+            </button>
+          </div>
+        );
+      })}
+    </div>
+  )}
+</Section>
         </form>
 
         <div className="flex-shrink-0 px-8 py-4 bg-white border-t border-gray-100 flex items-center justify-end gap-3">
@@ -826,9 +909,16 @@ const [showEditModal, setShowEditModal] = useState(false);
 
 const updateMutation = useMutation({
   mutationFn: async ({ id, data }) => {
-    const res = await api.put(`/api/articles/${id}`, data, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    const res = await axios.put(
+      `http://localhost:8080/api/articles/${id}`, 
+      data,  // FormData
+      {
+        headers: { 
+          Authorization: `Bearer ${token}`,
+          // pas de Content-Type ici
+        },
+      }
+    );
     return res.data;
   },
   onSuccess: () => {
@@ -1157,9 +1247,15 @@ const filteredArticles = articleList.filter((article) =>
           )}
 
   {showEditModal && editArticle && (
-  <ArticleFormModal
-    initialData={editArticle}
+  <ArticleEditModal
+    article={editArticle}
+    typeEvenements={typeEvenements}
+    MediaPresente={MediaPresente}
     onClose={() => setShowEditModal(false)}
+    onSubmit={(data) =>
+      updateMutation.mutate({ id: editArticle.id, data })
+    }
+    isSubmitting={updateMutation.isPending}
   />
 )}
         </div>
